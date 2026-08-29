@@ -30,23 +30,27 @@ function inferredOutcome(control: ControlDescriptor): string {
   return '⊘ Resultado no observable sin ejecutar la acción';
 }
 
+function stateChangeLines(event: Extract<FlowEvent, { type: 'state-change' }>): readonly string[] {
+  const after = event.after === undefined ? '' : ` después de ${event.after}`;
+  return [
+    `✓ {Cambio de estado}${after}`,
+    ...event.changes.map(
+      (change) =>
+        `├── ${clean(change.label)} · ${change.attribute} · ${change.state.join(', ') || `visible=${String(change.visible)}`}`,
+    ),
+  ];
+}
+
 function eventLines(event: FlowEvent): readonly string[] {
   switch (event.type) {
     case 'route':
       return [`✓ <Navegación ${event.detail.mode}>`, `└── → ${event.detail.url}`];
-    case 'network':
-      return [
-        `✓ <${event.detail.method} ${event.detail.url}>`,
-        `└── {HTTP ${event.detail.status ?? 'error'}}`,
-      ];
+    case 'network': {
+      const status = event.detail.status === null ? 'error' : String(event.detail.status);
+      return [`✓ <${event.detail.method} ${event.detail.url}>`, `└── {HTTP ${status}}`];
+    }
     case 'state-change':
-      return [
-        `✓ {Cambio de estado}${event.after ? ` después de ${event.after}` : ''}`,
-        ...event.changes.map(
-          (change) =>
-            `├── ${clean(change.label)} · ${change.attribute} · ${change.state.join(', ') || `visible=${String(change.visible)}`}`,
-        ),
-      ];
+      return stateChangeLines(event);
     case 'click':
     case 'submit':
     case 'change':
@@ -115,7 +119,7 @@ export function generatePff(snapshot: FlowSnapshot): string {
     '│',
     '├── Entrada',
     `│   ├── *URL* ${scan.page.url}`,
-    `│   └── {DOM visible · ${scan.controls.length} controles}`,
+    `│   └── {DOM visible · ${String(scan.controls.length)} controles}`,
     '│',
     '├── Funciones detectadas',
   ];
@@ -125,28 +129,31 @@ export function generatePff(snapshot: FlowSnapshot): string {
     lines.push(`│   ├── FUNCIÓN · ${clean(control.label)}`);
     lines.push('│   │   ├── Trigger');
     lines.push(`│   │   │   └── ${controlNotation(control)}`);
-    if (control.state.length)
+    if (control.state.length) {
       lines.push(`│   │   ├── Estado inicial · ${control.state.join(' · ')}`);
+    }
     lines.push(
       `│   │   └── ${observedSelectors.has(control.selector) ? '✓ Acción observada durante grabación' : inferredOutcome(control)}`,
     );
   }
 
   lines.push('│', '├── Secuencia observada');
-  if (!events.length)
+  if (!events.length) {
     lines.push('│   └── ⊘ Sin grabación. Pulsa [Grabar] y ejecuta el flujo real.');
+  }
   for (const event of events.slice(-120)) {
     const chunks = eventLines(event);
-    lines.push(`│   ├── ${event.id} · ${chunks[0]}`);
+    const first = chunks[0] ?? '⊘ Evento sin representación';
+    lines.push(`│   ├── ${event.id} · ${first}`);
     for (const child of chunks.slice(1)) lines.push(`│   │   ${child}`);
   }
 
   lines.push(
     '│',
     '└── Cobertura',
-    `    ├── *Funciones detectadas* ${actionable.length}`,
-    `    ├── *Funciones ejecutadas* ${observedCount}`,
-    `    └── *Cobertura observacional* ${coverage}%`,
+    `    ├── *Funciones detectadas* ${String(actionable.length)}`,
+    `    ├── *Funciones ejecutadas* ${String(observedCount)}`,
+    `    └── *Cobertura observacional* ${String(coverage)}%`,
     '',
     'REGLA DE PRECISIÓN',
     '✓ = observado directamente',
