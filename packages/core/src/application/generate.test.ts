@@ -181,7 +181,10 @@ describe('flow generators', () => {
       },
     ];
     const pff = generatePff(
-      createSnapshot(scanWith([inputControl, checkboxControl, radioControl, submitControl]), events),
+      createSnapshot(
+        scanWith([inputControl, checkboxControl, radioControl, submitControl]),
+        events,
+      ),
     );
     expect(pff).toContain('(Nombre · requerido) · change[value-redacted]');
     expect(pff).toContain('[Checkbox: Aceptar] · change');
