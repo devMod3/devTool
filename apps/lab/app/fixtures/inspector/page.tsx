@@ -11,7 +11,11 @@ export default function InspectorFixturePage() {
     <main>
       <h1>Inspector Exit Fixture</h1>
       <section className="fixture-card" aria-label="Acciones de prueba">
-        <button type="button" data-testid="target-action" onClick={() => setCount((value) => value + 1)}>
+        <button
+          type="button"
+          data-testid="target-action"
+          onClick={() => setCount((value) => value + 1)}
+        >
           Target action
         </button>
         <output data-testid="target-count">{count}</output>

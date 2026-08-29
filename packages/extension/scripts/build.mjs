@@ -18,9 +18,21 @@ const shared = {
 };
 
 await Promise.all([
-  build({ ...shared, entryPoints: [resolve(root, 'src/content-entry.ts')], outfile: resolve(dist, 'content.js') }),
-  build({ ...shared, entryPoints: [resolve(root, 'src/page-probe.ts')], outfile: resolve(dist, 'page-probe.js') }),
-  build({ ...shared, entryPoints: [resolve(root, 'src/service-worker.ts')], outfile: resolve(dist, 'service-worker.js') }),
+  build({
+    ...shared,
+    entryPoints: [resolve(root, 'src/content-entry.ts')],
+    outfile: resolve(dist, 'content.js'),
+  }),
+  build({
+    ...shared,
+    entryPoints: [resolve(root, 'src/page-probe.ts')],
+    outfile: resolve(dist, 'page-probe.js'),
+  }),
+  build({
+    ...shared,
+    entryPoints: [resolve(root, 'src/service-worker.ts')],
+    outfile: resolve(dist, 'service-worker.js'),
+  }),
 ]);
 
 await cpFile(resolve(root, 'manifest.json'), resolve(dist, 'manifest.json'));

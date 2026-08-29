@@ -37,10 +37,7 @@ export default tseslint.config(
       '@typescript-eslint/switch-exhaustiveness-check': 'error',
       complexity: ['error', 12],
       'max-depth': ['error', 4],
-      'max-lines-per-function': [
-        'error',
-        { max: 100, skipBlankLines: true, skipComments: true },
-      ],
+      'max-lines-per-function': ['error', { max: 100, skipBlankLines: true, skipComments: true }],
       'no-console': ['error', { allow: ['warn', 'error'] }],
     },
   },
@@ -56,11 +53,7 @@ export default tseslint.config(
         {
           patterns: [
             {
-              group: [
-                '@devtool/extension*',
-                '**/infrastructure/**',
-                '**/presentation/**',
-              ],
+              group: ['@devtool/extension*', '**/infrastructure/**', '**/presentation/**'],
               message: 'Core must not depend on outer architecture layers.',
             },
           ],

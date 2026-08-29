@@ -170,7 +170,10 @@ export class BrowserInspector implements InspectorPort {
     this.panel.hidden = true;
   }
 
-  private make<K extends keyof HTMLElementTagNameMap>(tag: K, className: string): HTMLElementTagNameMap[K] {
+  private make<K extends keyof HTMLElementTagNameMap>(
+    tag: K,
+    className: string,
+  ): HTMLElementTagNameMap[K] {
     const element = document.createElement(tag);
     element.className = className;
     return element;

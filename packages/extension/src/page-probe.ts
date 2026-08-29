@@ -9,7 +9,8 @@ if (!runtime[PAGE_PROBE_KEY]) {
   const safeUrl = (raw: unknown): string => {
     try {
       const url = new URL(String(raw ?? ''), document.baseURI);
-      if (url.protocol === 'http:' || url.protocol === 'https:') return `${url.origin}${url.pathname}`.slice(0, 800);
+      if (url.protocol === 'http:' || url.protocol === 'https:')
+        return `${url.origin}${url.pathname}`.slice(0, 800);
       return `${url.protocol}[redacted]`;
     } catch {
       return '[unparseable URL]';
@@ -47,13 +48,19 @@ if (!runtime[PAGE_PROBE_KEY]) {
     emit('route', { mode: 'replaceState', url: safeUrl(location.href) });
     return result;
   };
-  globalThis.addEventListener('popstate', () => emit('route', { mode: 'popstate', url: safeUrl(location.href) }));
-  globalThis.addEventListener('hashchange', () => emit('route', { mode: 'hashchange', url: safeUrl(location.href) }));
+  globalThis.addEventListener('popstate', () =>
+    emit('route', { mode: 'popstate', url: safeUrl(location.href) }),
+  );
+  globalThis.addEventListener('hashchange', () =>
+    emit('route', { mode: 'hashchange', url: safeUrl(location.href) }),
+  );
 
   const originalFetch = globalThis.fetch.bind(globalThis);
   globalThis.fetch = async (input, init) => {
     const requestUrl = input instanceof Request ? input.url : input;
-    const method = String(init?.method ?? (input instanceof Request ? input.method : 'GET')).toUpperCase();
+    const method = String(
+      init?.method ?? (input instanceof Request ? input.method : 'GET'),
+    ).toUpperCase();
     const startedAt = performance.now();
     try {
       const response = await originalFetch(input, init);
@@ -82,13 +89,21 @@ if (!runtime[PAGE_PROBE_KEY]) {
 
   const xhrMeta = new WeakMap<XMLHttpRequest, { method: string; url: string }>();
   const originalOpen = XMLHttpRequest.prototype.open;
-  XMLHttpRequest.prototype.open = function open(method: string, url: string | URL, async = true, username?: string | null, password?: string | null): void {
+  XMLHttpRequest.prototype.open = function open(
+    method: string,
+    url: string | URL,
+    async = true,
+    username?: string | null,
+    password?: string | null,
+  ): void {
     xhrMeta.set(this, { method: method.toUpperCase(), url: safeUrl(url) });
     originalOpen.call(this, method, String(url), async, username ?? null, password ?? null);
   } as typeof XMLHttpRequest.prototype.open;
 
   const originalSend = XMLHttpRequest.prototype.send;
-  XMLHttpRequest.prototype.send = function send(body?: Document | XMLHttpRequestBodyInit | null): void {
+  XMLHttpRequest.prototype.send = function send(
+    body?: Document | XMLHttpRequestBodyInit | null,
+  ): void {
     const startedAt = performance.now();
     this.addEventListener(
       'loadend',

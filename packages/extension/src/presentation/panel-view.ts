@@ -1,7 +1,8 @@
 import { DEVTOOL_HOST_TAG } from '../shared/constants';
 import type { ToolUiBoundary } from '../infrastructure/dom/tool-ui-boundary';
 
-export type PanelAction = 'scan' | 'record' | 'screen' | 'pff' | 'json' | 'inspector' | 'clear' | 'copy' | 'close';
+export type PanelAction =
+  'scan' | 'record' | 'screen' | 'pff' | 'json' | 'inspector' | 'clear' | 'copy' | 'close';
 
 export class PanelView {
   private readonly host: HTMLElement;
@@ -62,9 +63,10 @@ export class PanelView {
 
   public setStatus(message: string): void {
     this.status.textContent = message;
-    if (message) globalThis.setTimeout(() => {
-      if (this.status.textContent === message) this.status.textContent = '';
-    }, 1800);
+    if (message)
+      globalThis.setTimeout(() => {
+        if (this.status.textContent === message) this.status.textContent = '';
+      }, 1800);
   }
 
   public toggle(): void {
@@ -115,7 +117,10 @@ export class PanelView {
   }
 
   private readonly onClick = (event: Event): void => {
-    const target = event.target instanceof Element ? event.target.closest<HTMLButtonElement>('[data-action]') : null;
+    const target =
+      event.target instanceof Element
+        ? event.target.closest<HTMLButtonElement>('[data-action]')
+        : null;
     const action = target?.dataset.action as PanelAction | undefined;
     if (!action) return;
     for (const listener of this.listeners) listener(action);
@@ -130,7 +135,10 @@ export class PanelView {
     return button;
   }
 
-  private make<K extends keyof HTMLElementTagNameMap>(tag: K, className: string): HTMLElementTagNameMap[K] {
+  private make<K extends keyof HTMLElementTagNameMap>(
+    tag: K,
+    className: string,
+  ): HTMLElementTagNameMap[K] {
     const element = document.createElement(tag);
     element.className = className;
     return element;

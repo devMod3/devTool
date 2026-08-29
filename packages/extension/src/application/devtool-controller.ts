@@ -1,4 +1,11 @@
-import { createSnapshot, generatePff, generateScreenFlow, type InspectorPort, type RecorderPort, type ScannerPort } from '@devtool/core';
+import {
+  createSnapshot,
+  generatePff,
+  generateScreenFlow,
+  type InspectorPort,
+  type RecorderPort,
+  type ScannerPort,
+} from '@devtool/core';
 import type { PanelAction, PanelView } from '../presentation/panel-view';
 
 export class DevToolController {

@@ -8,11 +8,16 @@ export class ToolUiBoundary {
   public isToolEvent(event: Event): boolean {
     return event.composedPath().some((candidate) => {
       if (!(candidate instanceof Element)) return false;
-      return candidate.hasAttribute(DEVTOOL_UI_ATTR) || candidate.closest(`[${DEVTOOL_UI_ATTR}]`) !== null;
+      return (
+        candidate.hasAttribute(DEVTOOL_UI_ATTR) ||
+        candidate.closest(`[${DEVTOOL_UI_ATTR}]`) !== null
+      );
     });
   }
 
   public isToolElement(element: Element): boolean {
-    return element.hasAttribute(DEVTOOL_UI_ATTR) || element.closest(`[${DEVTOOL_UI_ATTR}]`) !== null;
+    return (
+      element.hasAttribute(DEVTOOL_UI_ATTR) || element.closest(`[${DEVTOOL_UI_ATTR}]`) !== null
+    );
   }
 }

@@ -3,7 +3,10 @@ import type { ControlDescriptor, FlowEvent, FlowSnapshot, PageScan } from '../do
 const ACTIONABLE = new Set(['navigate', 'submit', 'toggle', 'action']);
 
 function clean(value: string): string {
-  return value.replace(/[\r\n]+/gu, ' ').trim().slice(0, 180);
+  return value
+    .replace(/[\r\n]+/gu, ' ')
+    .trim()
+    .slice(0, 180);
 }
 
 function controlNotation(control: ControlDescriptor): string {
@@ -101,7 +104,9 @@ export function generatePff(snapshot: FlowSnapshot): string {
   );
   const actionable = actionableControls(scan);
   const actionableSelectors = new Set(actionable.map((control) => control.selector));
-  const observedCount = [...observedSelectors].filter((selector) => actionableSelectors.has(selector)).length;
+  const observedCount = [...observedSelectors].filter((selector) =>
+    actionableSelectors.has(selector),
+  ).length;
   const coverage = actionable.length ? Math.round((observedCount / actionable.length) * 100) : 100;
   const lines = [
     'PFF · PRODUCT FUNCTIONAL FLOW',
@@ -120,14 +125,16 @@ export function generatePff(snapshot: FlowSnapshot): string {
     lines.push(`│   ├── FUNCIÓN · ${clean(control.label)}`);
     lines.push('│   │   ├── Trigger');
     lines.push(`│   │   │   └── ${controlNotation(control)}`);
-    if (control.state.length) lines.push(`│   │   ├── Estado inicial · ${control.state.join(' · ')}`);
+    if (control.state.length)
+      lines.push(`│   │   ├── Estado inicial · ${control.state.join(' · ')}`);
     lines.push(
       `│   │   └── ${observedSelectors.has(control.selector) ? '✓ Acción observada durante grabación' : inferredOutcome(control)}`,
     );
   }
 
   lines.push('│', '├── Secuencia observada');
-  if (!events.length) lines.push('│   └── ⊘ Sin grabación. Pulsa [Grabar] y ejecuta el flujo real.');
+  if (!events.length)
+    lines.push('│   └── ⊘ Sin grabación. Pulsa [Grabar] y ejecuta el flujo real.');
   for (const event of events.slice(-120)) {
     const chunks = eventLines(event);
     lines.push(`│   ├── ${event.id} · ${chunks[0]}`);

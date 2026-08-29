@@ -5,7 +5,8 @@ const MAX_TEXT = 120;
 export function safeUrl(raw: unknown): string {
   try {
     const url = new URL(String(raw ?? ''), document.baseURI);
-    if (url.protocol === 'http:' || url.protocol === 'https:') return `${url.origin}${url.pathname}`;
+    if (url.protocol === 'http:' || url.protocol === 'https:')
+      return `${url.origin}${url.pathname}`;
     if (url.protocol === 'file:') return url.pathname;
     return `${url.protocol}[redacted]`;
   } catch {
@@ -14,12 +15,18 @@ export function safeUrl(raw: unknown): string {
 }
 
 export function cleanText(value: unknown, max = MAX_TEXT): string {
-  return String(value ?? '').replace(/\s+/gu, ' ').trim().slice(0, max);
+  return String(value ?? '')
+    .replace(/\s+/gu, ' ')
+    .trim()
+    .slice(0, max);
 }
 
 function cssEscape(value: string): string {
   if (globalThis.CSS?.escape) return CSS.escape(value);
-  return value.replace(/[^a-zA-Z0-9_-]/gu, (character) => `\\${character.codePointAt(0)?.toString(16) ?? '0'} `);
+  return value.replace(
+    /[^a-zA-Z0-9_-]/gu,
+    (character) => `\\${character.codePointAt(0)?.toString(16) ?? '0'} `,
+  );
 }
 
 export function exactPath(element: Element): string {
@@ -48,7 +55,8 @@ export function exactPath(element: Element): string {
 }
 
 export function visible(element: Element): boolean {
-  if (element.hasAttribute('hidden') || element.getAttribute('aria-hidden') === 'true') return false;
+  if (element.hasAttribute('hidden') || element.getAttribute('aria-hidden') === 'true')
+    return false;
   const style = getComputedStyle(element);
   if (style.display === 'none' || style.visibility === 'hidden') return false;
   const rect = element.getBoundingClientRect();
@@ -67,14 +75,25 @@ export function labelFor(element: Element): string {
       .join(' ');
     if (text) return text;
   }
-  if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement || element instanceof HTMLSelectElement) {
-    const explicit = element.id ? document.querySelector(`label[for="${cssEscape(element.id)}"]`) : null;
+  if (
+    element instanceof HTMLInputElement ||
+    element instanceof HTMLTextAreaElement ||
+    element instanceof HTMLSelectElement
+  ) {
+    const explicit = element.id
+      ? document.querySelector(`label[for="${cssEscape(element.id)}"]`)
+      : null;
     const label = cleanText(explicit?.textContent ?? element.closest('label')?.textContent);
     if (label) return label;
     if (element.placeholder) return cleanText(element.placeholder);
     if (element.name) return element.name;
   }
-  return cleanText(element.textContent) || cleanText(element.getAttribute('title')) || element.id || element.tagName.toLowerCase();
+  return (
+    cleanText(element.textContent) ||
+    cleanText(element.getAttribute('title')) ||
+    element.id ||
+    element.tagName.toLowerCase()
+  );
 }
 
 export function roleFor(element: Element): string {
@@ -97,7 +116,8 @@ export function actionKind(element: Element): ControlKind {
   if (element instanceof HTMLAnchorElement) return 'navigate';
   if (element instanceof HTMLButtonElement) {
     if (element.type === 'submit') return 'submit';
-    if (element.hasAttribute('aria-expanded') || element.hasAttribute('aria-pressed')) return 'toggle';
+    if (element.hasAttribute('aria-expanded') || element.hasAttribute('aria-pressed'))
+      return 'toggle';
     return 'action';
   }
   if (element instanceof HTMLSelectElement) return 'select';
@@ -113,11 +133,20 @@ export function actionKind(element: Element): ControlKind {
 
 export function dynamicState(element: Element): readonly string[] {
   const values: string[] = [];
-  for (const name of ['aria-expanded', 'aria-selected', 'aria-pressed', 'aria-current', 'aria-invalid']) {
+  for (const name of [
+    'aria-expanded',
+    'aria-selected',
+    'aria-pressed',
+    'aria-current',
+    'aria-invalid',
+  ]) {
     if (element.hasAttribute(name)) values.push(`${name}=${element.getAttribute(name)}`);
   }
   if ('disabled' in element && Boolean(element.disabled)) values.push('disabled=true');
-  if (element instanceof HTMLInputElement && (element.type === 'checkbox' || element.type === 'radio')) {
+  if (
+    element instanceof HTMLInputElement &&
+    (element.type === 'checkbox' || element.type === 'radio')
+  ) {
     values.push(`checked=${String(element.checked)}`);
   }
   if (element instanceof HTMLDetailsElement) values.push(`open=${String(element.open)}`);
@@ -130,7 +159,10 @@ export function controlDescriptor(element: Element): ControlDescriptor {
     role: roleFor(element),
     label: labelFor(element),
     kind: actionKind(element),
-    required: 'required' in element ? Boolean(element.required) : element.getAttribute('aria-required') === 'true',
+    required:
+      'required' in element
+        ? Boolean(element.required)
+        : element.getAttribute('aria-required') === 'true',
     state: dynamicState(element),
   } satisfies Omit<ControlDescriptor, 'target'>;
 
@@ -141,5 +173,8 @@ export function controlDescriptor(element: Element): ControlDescriptor {
 }
 
 export function firstElementFromEvent(event: Event): Element | null {
-  return event.composedPath().find((candidate): candidate is Element => candidate instanceof Element) ?? null;
+  return (
+    event.composedPath().find((candidate): candidate is Element => candidate instanceof Element) ??
+    null
+  );
 }

@@ -1,10 +1,39 @@
 import type { FlowEvent, RecorderPort, StateChangeEvent } from '@devtool/core';
 import { PAGE_PROBE_CONTROL_SOURCE, PAGE_PROBE_SOURCE } from '../../shared/constants';
-import { controlDescriptor, dynamicState, exactPath, firstElementFromEvent, labelFor, visible } from './dom-utils';
+import {
+  controlDescriptor,
+  dynamicState,
+  exactPath,
+  firstElementFromEvent,
+  labelFor,
+  visible,
+} from './dom-utils';
 import type { ToolUiBoundary } from './tool-ui-boundary';
 
-const REDACTED_INPUT_TYPES = new Set(['password', 'email', 'tel', 'search', 'text', 'url', 'number', 'date', 'datetime-local', 'month', 'week', 'time']);
-const MUTATION_ATTRIBUTES = ['hidden', 'open', 'disabled', 'aria-expanded', 'aria-selected', 'aria-pressed', 'aria-hidden', 'aria-invalid'];
+const REDACTED_INPUT_TYPES = new Set([
+  'password',
+  'email',
+  'tel',
+  'search',
+  'text',
+  'url',
+  'number',
+  'date',
+  'datetime-local',
+  'month',
+  'week',
+  'time',
+]);
+const MUTATION_ATTRIBUTES = [
+  'hidden',
+  'open',
+  'disabled',
+  'aria-expanded',
+  'aria-selected',
+  'aria-pressed',
+  'aria-hidden',
+  'aria-invalid',
+];
 const MAX_EVENTS = 300;
 
 type PendingChange = StateChangeEvent['changes'][number];
@@ -82,17 +111,24 @@ export class BrowserRecorder implements RecorderPort {
 
   private readonly onChange = (event: Event): void => {
     const target = firstElementFromEvent(event);
-    const type = target instanceof HTMLInputElement && REDACTED_INPUT_TYPES.has(target.type || 'text')
-      ? 'change[value-redacted]'
-      : 'change';
+    const type =
+      target instanceof HTMLInputElement && REDACTED_INPUT_TYPES.has(target.type || 'text')
+        ? 'change[value-redacted]'
+        : 'change';
     this.recordInteraction(type, event);
   };
 
-  private recordInteraction(type: 'click' | 'submit' | 'change' | 'change[value-redacted]', event: Event): void {
+  private recordInteraction(
+    type: 'click' | 'submit' | 'change' | 'change[value-redacted]',
+    event: Event,
+  ): void {
     if (!this.recordingFlag || this.boundary.isToolEvent(event)) return;
     const target = firstElementFromEvent(event);
     if (!target) return;
-    const control = target.closest('a[href],button,input,textarea,select,summary,[role="button"],[role="link"],[role="tab"],[role="switch"]') ?? target;
+    const control =
+      target.closest(
+        'a[href],button,input,textarea,select,summary,[role="button"],[role="link"],[role="tab"],[role="switch"]',
+      ) ?? target;
     const entry = {
       id: this.nextId(),
       at: Date.now(),
@@ -113,9 +149,11 @@ export class BrowserRecorder implements RecorderPort {
   };
 
   private collectMutation(mutation: MutationRecord): void {
-    const target = mutation.target instanceof Element ? mutation.target : mutation.target.parentElement;
+    const target =
+      mutation.target instanceof Element ? mutation.target : mutation.target.parentElement;
     if (!target || this.boundary.isToolElement(target)) return;
-    const attribute = mutation.type === 'attributes' ? (mutation.attributeName ?? 'attribute') : 'childList';
+    const attribute =
+      mutation.type === 'attributes' ? (mutation.attributeName ?? 'attribute') : 'childList';
     const change: PendingChange = {
       selector: exactPath(target),
       label: labelFor(target),
@@ -144,7 +182,12 @@ export class BrowserRecorder implements RecorderPort {
   private readonly onProbeMessage = (event: MessageEvent<unknown>): void => {
     if (!this.recordingFlag || typeof event.data !== 'object' || event.data === null) return;
     const envelope = event.data as { source?: unknown; payload?: unknown };
-    if (envelope.source !== PAGE_PROBE_SOURCE || typeof envelope.payload !== 'object' || envelope.payload === null) return;
+    if (
+      envelope.source !== PAGE_PROBE_SOURCE ||
+      typeof envelope.payload !== 'object' ||
+      envelope.payload === null
+    )
+      return;
     const payload = envelope.payload as Record<string, unknown>;
     if (payload.kind === 'route' && typeof payload.url === 'string') {
       this.push({

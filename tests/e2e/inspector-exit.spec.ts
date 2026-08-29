@@ -17,7 +17,10 @@ async function injectDevTool(extensionWorker: Worker): Promise<void> {
   });
 }
 
-test('Inspector can be disabled from DevTool without trapping clicks', async ({ context, extensionWorker }) => {
+test('Inspector can be disabled from DevTool without trapping clicks', async ({
+  context,
+  extensionWorker,
+}) => {
   const page = await context.newPage();
   await page.goto('/fixtures/inspector');
   await page.bringToFront();
@@ -39,7 +42,10 @@ test('Inspector can be disabled from DevTool without trapping clicks', async ({ 
   await expect(page.getByTestId('target-count')).toHaveText('1');
 });
 
-test('Escape is a guaranteed Inspector exit and private input values stay out of snapshots', async ({ context, extensionWorker }) => {
+test('Escape is a guaranteed Inspector exit and private input values stay out of snapshots', async ({
+  context,
+  extensionWorker,
+}) => {
   const page = await context.newPage();
   await page.goto('/fixtures/inspector');
   await page.bringToFront();
