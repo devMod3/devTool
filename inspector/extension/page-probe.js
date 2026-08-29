@@ -5,6 +5,7 @@
   if (globalThis[KEY]) return;
 
   const EVENT = '__zen_flow_probe__';
+  const MESSAGE_SOURCE = 'zen-flow-page-probe';
   const MAX_URL = 800;
 
   function safeUrl(raw) {
@@ -20,13 +21,13 @@
   }
 
   function emit(kind, detail = {}) {
-    document.dispatchEvent(new CustomEvent(EVENT, {
-      detail: Object.freeze({
-        kind,
-        at: Date.now(),
-        ...detail
-      })
-    }));
+    const payload = Object.freeze({
+      kind,
+      at: Date.now(),
+      ...detail
+    });
+    document.dispatchEvent(new CustomEvent(EVENT, { detail: payload }));
+    globalThis.postMessage({ source: MESSAGE_SOURCE, payload }, '*');
   }
 
   const originalPushState = history.pushState.bind(history);
