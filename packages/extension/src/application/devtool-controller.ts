@@ -14,7 +14,7 @@ export class DevToolController {
 
   public mount(): void {
     this.unsubscribeAction = this.view.onAction(this.handleAction);
-    this.unsubscribeInspector = this.inspector.subscribe((active) => this.view.setInspectorActive(active));
+    this.unsubscribeInspector = this.inspector.subscribe(this.handleInspectorState);
     this.view.setInspectorActive(this.inspector.active);
     this.view.setRecording(this.recorder.recording);
     this.renderPff();
@@ -31,6 +31,16 @@ export class DevToolController {
     this.inspector.dispose();
     this.view.dispose();
   }
+
+  private readonly handleInspectorState = (active: boolean): void => {
+    if (active && this.recorder.recording) {
+      this.recorder.stop();
+      this.view.setRecording(false);
+      this.view.setStatus('Grabación detenida al activar Inspector');
+    }
+    this.view.setInspectorActive(active);
+    this.refreshStats();
+  };
 
   private readonly handleAction = (action: PanelAction): void => {
     switch (action) {
@@ -64,6 +74,7 @@ export class DevToolController {
   };
 
   private toggleRecording(): void {
+    if (this.inspector.active) this.inspector.setActive(false);
     if (this.recorder.recording) this.recorder.stop();
     else this.recorder.start();
     this.view.setRecording(this.recorder.recording);

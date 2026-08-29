@@ -158,7 +158,10 @@ export class BrowserInspector implements InspectorPort {
     const actions = this.make('footer', 'zi-panel-actions');
     const copy = this.button('Copiar selector');
     copy.addEventListener('click', () => {
-      void navigator.clipboard.writeText(this.selector.value);
+      void navigator.clipboard.writeText(this.selector.value).catch(() => {
+        this.selector.focus();
+        this.selector.select();
+      });
     });
     const exit = this.button('Salir de Inspector');
     exit.addEventListener('click', () => this.setActive(false));

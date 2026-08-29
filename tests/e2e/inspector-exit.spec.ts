@@ -1,6 +1,7 @@
+import type { Worker } from '@playwright/test';
 import { expect, test } from './fixtures';
 
-async function injectDevTool(extensionWorker: Parameters<Parameters<typeof test>[0]>[0]['extensionWorker']): Promise<void> {
+async function injectDevTool(extensionWorker: Worker): Promise<void> {
   await extensionWorker.evaluate(async () => {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (typeof tab?.id !== 'number') throw new Error('Active tab not found');
@@ -37,7 +38,7 @@ test('Inspector can be disabled from DevTool without trapping clicks', async ({ 
   await expect(page.getByTestId('target-count')).toHaveText('1');
 });
 
-test('Escape is a guaranteed Inspector exit and private input values stay redacted', async ({ context, extensionWorker }) => {
+test('Escape is a guaranteed Inspector exit and private input values stay out of snapshots', async ({ context, extensionWorker }) => {
   const page = await context.newPage();
   await page.goto('/fixtures/inspector');
   await injectDevTool(extensionWorker);
@@ -48,7 +49,7 @@ test('Escape is a guaranteed Inspector exit and private input values stay redact
   await expect(devTool.getByRole('button', { name: 'Inspector · OFF' })).toBeVisible();
 
   await devTool.getByRole('button', { name: 'JSON' }).click();
-  const output = devTool.locator('textarea.zf-output');
-  await expect(output).not.toContainText('dato privado de prueba');
-  await expect(output).toContainText('[value redacted]');
+  const value = await devTool.locator('textarea.zf-output').inputValue();
+  expect(value).not.toContain('dato privado de prueba');
+  expect(value).toContain('"required": true');
 });

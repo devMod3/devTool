@@ -1,9 +1,11 @@
-import { PAGE_PROBE_KEY, PAGE_PROBE_SOURCE } from './shared/constants';
+import { PAGE_PROBE_CONTROL_SOURCE, PAGE_PROBE_KEY, PAGE_PROBE_SOURCE } from './shared/constants';
 
 type ProbeGlobal = typeof globalThis & Record<string, unknown>;
 const runtime = globalThis as ProbeGlobal;
 
 if (!runtime[PAGE_PROBE_KEY]) {
+  let active = false;
+
   const safeUrl = (raw: unknown): string => {
     try {
       const url = new URL(String(raw ?? ''), document.baseURI);
@@ -14,7 +16,8 @@ if (!runtime[PAGE_PROBE_KEY]) {
     }
   };
 
-  const emit = (kind: 'probe-ready' | 'route' | 'network', detail: Record<string, unknown> = {}): void => {
+  const emit = (kind: 'route' | 'network', detail: Record<string, unknown>): void => {
+    if (!active) return;
     globalThis.postMessage(
       {
         source: PAGE_PROBE_SOURCE,
@@ -23,6 +26,14 @@ if (!runtime[PAGE_PROBE_KEY]) {
       '*',
     );
   };
+
+  globalThis.addEventListener('message', (event: MessageEvent<unknown>) => {
+    if (typeof event.data !== 'object' || event.data === null) return;
+    const command = event.data as { source?: unknown; active?: unknown };
+    if (command.source === PAGE_PROBE_CONTROL_SOURCE && typeof command.active === 'boolean') {
+      active = command.active;
+    }
+  });
 
   const pushState = history.pushState.bind(history);
   const replaceState = history.replaceState.bind(history);
@@ -98,5 +109,4 @@ if (!runtime[PAGE_PROBE_KEY]) {
   };
 
   runtime[PAGE_PROBE_KEY] = Object.freeze({ version: '2.0.0' });
-  emit('probe-ready', { url: safeUrl(location.href) });
 }

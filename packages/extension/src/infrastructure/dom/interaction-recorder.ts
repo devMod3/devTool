@@ -1,5 +1,5 @@
 import type { FlowEvent, RecorderPort, StateChangeEvent } from '@devtool/core';
-import { PAGE_PROBE_SOURCE } from '../../shared/constants';
+import { PAGE_PROBE_CONTROL_SOURCE, PAGE_PROBE_SOURCE } from '../../shared/constants';
 import { controlDescriptor, dynamicState, exactPath, firstElementFromEvent, labelFor, visible } from './dom-utils';
 import type { ToolUiBoundary } from './tool-ui-boundary';
 
@@ -38,12 +38,14 @@ export class BrowserRecorder implements RecorderPort {
   public start(): void {
     this.recordingFlag = true;
     this.lastActionId = undefined;
+    this.setProbeActive(true);
   }
 
   public stop(): void {
-    this.flushMutations();
+    if (this.recordingFlag) this.flushMutations();
     this.recordingFlag = false;
     this.lastActionId = undefined;
+    this.setProbeActive(false);
   }
 
   public clear(): void {
@@ -64,6 +66,10 @@ export class BrowserRecorder implements RecorderPort {
     document.removeEventListener('change', this.onChange, true);
     globalThis.removeEventListener('message', this.onProbeMessage);
     if (this.mutationTimer !== undefined) globalThis.clearTimeout(this.mutationTimer);
+  }
+
+  private setProbeActive(active: boolean): void {
+    globalThis.postMessage({ source: PAGE_PROBE_CONTROL_SOURCE, active }, '*');
   }
 
   private readonly onClick = (event: Event): void => {

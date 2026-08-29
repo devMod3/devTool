@@ -14,7 +14,7 @@
     "build:extension": "pnpm --filter @devtool/extension build",
     "build:lab": "pnpm --filter @devtool/lab build",
     "lint": "eslint . --max-warnings=0",
-    "typecheck": "pnpm -r typecheck",
+    "typecheck": "tsc --noEmit -p tsconfig.json && pnpm -r typecheck",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "pnpm build:extension && playwright test",

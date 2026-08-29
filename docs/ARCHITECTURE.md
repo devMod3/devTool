@@ -54,8 +54,13 @@ Toda UI propia debe llevar `data-zen-devtool-ui`. Antes de interceptar un evento
 - listeners de captura existen sólo mientras está ON;
 - `[Desactivar]` siempre es clicable;
 - `Escape` siempre desactiva Inspector;
+- activar Inspector detiene una grabación activa para no contaminar el PFF con clics diagnósticos;
 - desactivar elimina listeners y overlays;
 - no se usa `localStorage` para conservar el modo.
+
+## Page Probe
+
+El wrapper MAIN-world de `fetch`/XHR/history se instala una sola vez por documento, pero permanece **silencioso** cuando Recorder está OFF. Recorder activa/desactiva la emisión mediante un mensaje local; no hay persistencia ni red propia de DevTool.
 
 ## Privacidad
 
