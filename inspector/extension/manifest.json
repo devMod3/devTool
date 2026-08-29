@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "Zen Inspector",
+  "version": "0.1.0",
+  "description": "Inspector DOM local y privado para Brave/Chromium.",
+  "permissions": ["activeTab", "scripting"],
+  "background": {
+    "service_worker": "service-worker.js"
+  },
+  "action": {
+    "default_title": "Activar Zen Inspector"
+  },
+  "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Alt+Shift+Z"
+      },
+      "description": "Activar o desactivar Zen Inspector"
+    }
+  }
+}
