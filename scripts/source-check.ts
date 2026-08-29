@@ -22,6 +22,10 @@ async function collectFiles(directory: string): Promise<string[]> {
   return files;
 }
 
+function writeLine(stream: NodeJS.WriteStream, message: string): void {
+  stream.write(`${message}\n`);
+}
+
 async function main(): Promise<void> {
   const productFiles = (
     await Promise.all(PRODUCT_SOURCE_ROOTS.map(async (root) => collectFiles(root)))
@@ -32,13 +36,19 @@ async function main(): Promise<void> {
     .sort();
 
   if (offenders.length === 0) {
-    console.log('Source policy PASS: product source is TypeScript/TSX only.');
+    writeLine(process.stdout, 'Source policy PASS: product source is TypeScript/TSX only.');
     return;
   }
 
-  console.error('Source policy FAIL: JavaScript source files were found in product directories:');
-  for (const offender of offenders) console.error(`- ${offender}`);
-  console.error('Move runtime JavaScript to generated dist/ artifacts or convert the source to TypeScript.');
+  writeLine(
+    process.stderr,
+    'Source policy FAIL: JavaScript source files were found in product directories:',
+  );
+  for (const offender of offenders) writeLine(process.stderr, `- ${offender}`);
+  writeLine(
+    process.stderr,
+    'Move runtime JavaScript to generated dist/ artifacts or convert the source to TypeScript.',
+  );
   process.exitCode = 1;
 }
 
