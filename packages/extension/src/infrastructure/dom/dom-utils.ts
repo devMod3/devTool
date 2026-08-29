@@ -2,11 +2,12 @@ import type { ControlDescriptor, ControlKind } from '@devtool/core';
 
 const MAX_TEXT = 120;
 
-export function safeUrl(raw: unknown): string {
+export function safeUrl(raw: string | URL): string {
   try {
-    const url = new URL(String(raw ?? ''), document.baseURI);
-    if (url.protocol === 'http:' || url.protocol === 'https:')
+    const url = new URL(raw, document.baseURI);
+    if (url.protocol === 'http:' || url.protocol === 'https:') {
       return `${url.origin}${url.pathname}`;
+    }
     if (url.protocol === 'file:') return url.pathname;
     return `${url.protocol}[redacted]`;
   } catch {
@@ -14,19 +15,15 @@ export function safeUrl(raw: unknown): string {
   }
 }
 
-export function cleanText(value: unknown, max = MAX_TEXT): string {
-  return String(value ?? '')
+export function cleanText(value: string | null | undefined, max = MAX_TEXT): string {
+  return (value ?? '')
     .replace(/\s+/gu, ' ')
     .trim()
     .slice(0, max);
 }
 
 function cssEscape(value: string): string {
-  if (globalThis.CSS?.escape) return CSS.escape(value);
-  return value.replace(
-    /[^a-zA-Z0-9_-]/gu,
-    (character) => `\\${character.codePointAt(0)?.toString(16) ?? '0'} `,
-  );
+  return CSS.escape(value);
 }
 
 export function exactPath(element: Element): string {
@@ -39,14 +36,18 @@ export function exactPath(element: Element): string {
       break;
     }
     let part = node.tagName.toLowerCase();
-    const stable = [...node.classList]
+    const stable = Array.from(node.classList)
       .filter((name) => !/^(?:is-|has-|js-|active$|selected$|open$|focus$)/u.test(name))
       .slice(0, 2);
     if (stable.length) part += `.${stable.map(cssEscape).join('.')}`;
-    const parent = node.parentElement;
+    const parent: Element | null = node.parentElement;
     if (parent) {
-      const peers = [...parent.children].filter((child) => child.tagName === node?.tagName);
-      if (peers.length > 1) part += `:nth-of-type(${peers.indexOf(node) + 1})`;
+      const tagName = node.tagName;
+      const peers = Array.from(parent.children).filter((child) => child.tagName === tagName);
+      if (peers.length > 1) {
+        const position = peers.indexOf(node) + 1;
+        part += `:nth-of-type(${String(position)})`;
+      }
     }
     parts.unshift(part);
     node = parent;
@@ -55,38 +56,58 @@ export function exactPath(element: Element): string {
 }
 
 export function visible(element: Element): boolean {
-  if (element.hasAttribute('hidden') || element.getAttribute('aria-hidden') === 'true')
+  if (element.hasAttribute('hidden') || element.getAttribute('aria-hidden') === 'true') {
     return false;
+  }
   const style = getComputedStyle(element);
   if (style.display === 'none' || style.visibility === 'hidden') return false;
   const rect = element.getBoundingClientRect();
   return rect.width > 0 && rect.height > 0;
 }
 
-export function labelFor(element: Element): string {
-  const aria = cleanText(element.getAttribute('aria-label'));
-  if (aria) return aria;
+function labelledByText(element: Element): string {
   const labelledBy = element.getAttribute('aria-labelledby');
-  if (labelledBy) {
-    const text = labelledBy
-      .split(/\s+/u)
-      .map((id) => cleanText(document.getElementById(id)?.textContent))
-      .filter(Boolean)
-      .join(' ');
-    if (text) return text;
-  }
-  if (
+  if (!labelledBy) return '';
+  return labelledBy
+    .split(/\s+/u)
+    .map((id) => cleanText(document.getElementById(id)?.textContent))
+    .filter(Boolean)
+    .join(' ');
+}
+
+function isFormControl(
+  element: Element,
+): element is HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement {
+  return (
     element instanceof HTMLInputElement ||
     element instanceof HTMLTextAreaElement ||
     element instanceof HTMLSelectElement
-  ) {
-    const explicit = element.id
-      ? document.querySelector(`label[for="${cssEscape(element.id)}"]`)
-      : null;
-    const label = cleanText(explicit?.textContent ?? element.closest('label')?.textContent);
-    if (label) return label;
-    if (element.placeholder) return cleanText(element.placeholder);
-    if (element.name) return element.name;
+  );
+}
+
+function formControlLabel(
+  element: HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement,
+): string {
+  const explicit = element.id
+    ? document.querySelector<HTMLLabelElement>(`label[for="${cssEscape(element.id)}"]`)
+    : null;
+  const label = cleanText(explicit?.textContent ?? element.closest('label')?.textContent);
+  if (label) return label;
+  if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) {
+    const placeholder = cleanText(element.placeholder);
+    if (placeholder) return placeholder;
+  }
+  return element.name;
+}
+
+export function labelFor(element: Element): string {
+  const aria = cleanText(element.getAttribute('aria-label'));
+  if (aria) return aria;
+  const labelled = labelledByText(element);
+  if (labelled) return labelled;
+  if (isFormControl(element)) {
+    const controlLabel = formControlLabel(element);
+    if (controlLabel) return controlLabel;
   }
   return (
     cleanText(element.textContent) ||
@@ -112,21 +133,24 @@ export function roleFor(element: Element): string {
   return element.tagName.toLowerCase();
 }
 
+function buttonActionKind(button: HTMLButtonElement): ControlKind {
+  if (button.type === 'submit') return 'submit';
+  if (button.hasAttribute('aria-expanded') || button.hasAttribute('aria-pressed')) return 'toggle';
+  return 'action';
+}
+
+function inputActionKind(input: HTMLInputElement): ControlKind {
+  if (input.type === 'checkbox' || input.type === 'radio') return 'toggle';
+  if (input.type === 'submit' || input.type === 'button') return 'action';
+  return 'input';
+}
+
 export function actionKind(element: Element): ControlKind {
   if (element instanceof HTMLAnchorElement) return 'navigate';
-  if (element instanceof HTMLButtonElement) {
-    if (element.type === 'submit') return 'submit';
-    if (element.hasAttribute('aria-expanded') || element.hasAttribute('aria-pressed'))
-      return 'toggle';
-    return 'action';
-  }
+  if (element instanceof HTMLButtonElement) return buttonActionKind(element);
   if (element instanceof HTMLSelectElement) return 'select';
   if (element instanceof HTMLTextAreaElement) return 'input';
-  if (element instanceof HTMLInputElement) {
-    if (element.type === 'checkbox' || element.type === 'radio') return 'toggle';
-    if (element.type === 'submit' || element.type === 'button') return 'action';
-    return 'input';
-  }
+  if (element instanceof HTMLInputElement) return inputActionKind(element);
   if (element instanceof HTMLSummaryElement) return 'toggle';
   return 'action';
 }
@@ -140,9 +164,11 @@ export function dynamicState(element: Element): readonly string[] {
     'aria-current',
     'aria-invalid',
   ]) {
-    if (element.hasAttribute(name)) values.push(`${name}=${element.getAttribute(name)}`);
+    const value = element.getAttribute(name);
+    if (value !== null) values.push(`${name}=${value}`);
   }
-  if ('disabled' in element && Boolean(element.disabled)) values.push('disabled=true');
+  if (element instanceof HTMLButtonElement && element.disabled) values.push('disabled=true');
+  if (isFormControl(element) && element.disabled) values.push('disabled=true');
   if (
     element instanceof HTMLInputElement &&
     (element.type === 'checkbox' || element.type === 'radio')
@@ -153,16 +179,18 @@ export function dynamicState(element: Element): readonly string[] {
   return values;
 }
 
+function isRequired(element: Element): boolean {
+  if (isFormControl(element)) return element.required;
+  return element.getAttribute('aria-required') === 'true';
+}
+
 export function controlDescriptor(element: Element): ControlDescriptor {
   const base = {
     selector: exactPath(element),
     role: roleFor(element),
     label: labelFor(element),
     kind: actionKind(element),
-    required:
-      'required' in element
-        ? Boolean(element.required)
-        : element.getAttribute('aria-required') === 'true',
+    required: isRequired(element),
     state: dynamicState(element),
   } satisfies Omit<ControlDescriptor, 'target'>;
 
