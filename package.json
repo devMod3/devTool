@@ -13,6 +13,7 @@
     "build:core": "pnpm --filter @devtool/core build",
     "build:extension": "pnpm --filter @devtool/extension build",
     "build:lab": "pnpm --filter @devtool/lab build",
+    "source:check": "node --experimental-strip-types scripts/source-check.ts",
     "lint": "eslint . --max-warnings=0",
     "typecheck": "tsc --noEmit -p tsconfig.json && pnpm -r typecheck",
     "test": "vitest run",
@@ -20,7 +21,7 @@
     "test:e2e": "pnpm build:extension && pnpm --filter @devtool/extension build:e2e && playwright test",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm test:e2e"
+    "check": "pnpm source:check && pnpm format:check && pnpm lint && pnpm typecheck && pnpm test:coverage && pnpm test:e2e"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
