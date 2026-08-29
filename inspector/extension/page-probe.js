@@ -4,7 +4,6 @@
   const KEY = '__ZEN_FLOW_PAGE_PROBE_V1__';
   if (globalThis[KEY]) return;
 
-  const EVENT = '__zen_flow_probe__';
   const MESSAGE_SOURCE = 'zen-flow-page-probe';
   const MAX_URL = 800;
 
@@ -26,7 +25,6 @@
       at: Date.now(),
       ...detail
     });
-    document.dispatchEvent(new CustomEvent(EVENT, { detail: payload }));
     globalThis.postMessage({ source: MESSAGE_SOURCE, payload }, '*');
   }
 
