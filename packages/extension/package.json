@@ -1,0 +1,19 @@
+{
+  "name": "@devtool/extension",
+  "version": "0.3.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "build:e2e": "node scripts/build-e2e.mjs",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run src"
+  },
+  "dependencies": {
+    "@devtool/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/chrome": "0.2.7",
+    "esbuild": "0.28.2"
+  }
+}

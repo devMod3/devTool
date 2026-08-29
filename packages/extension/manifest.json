@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Zen DevTool",
-  "version": "0.2.0",
-  "description": "Inspector DOM y generador local de Screen Flow + Product Functional Flow para Brave/Chromium.",
+  "version": "0.3.0",
+  "description": "Inspector y Product Flow Mapper local con arquitectura limpia para Brave/Chromium.",
   "permissions": ["activeTab", "scripting"],
   "background": {
     "service_worker": "service-worker.js"

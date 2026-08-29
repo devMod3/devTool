@@ -1,0 +1,36 @@
+:root {
+  font-family: system-ui, sans-serif;
+  color: #f1f0eb;
+  background: #121416;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+main {
+  width: min(920px, calc(100% - 32px));
+  margin: 48px auto;
+}
+
+button,
+input {
+  min-height: 40px;
+  font: inherit;
+}
+
+a {
+  color: #c5ae7a;
+}
+
+.fixture-card {
+  display: grid;
+  gap: 16px;
+  padding: 24px;
+  border: 1px solid #434a50;
+  background: #171a1d;
+}

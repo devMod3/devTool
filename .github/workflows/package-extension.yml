@@ -1,0 +1,43 @@
+name: Package Extension
+
+on:
+  push:
+    branches:
+      - refactor/clean-architecture-v0.3
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: corepack enable
+      - run: corepack prepare pnpm@11.24.0 --activate
+      - run: pnpm install --no-frozen-lockfile
+      - run: pnpm build:extension
+      - name: Verify production manifest permissions
+        run: |
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const manifest = JSON.parse(fs.readFileSync('packages/extension/dist/manifest.json', 'utf8'));
+          const permissions = [...(manifest.permissions || [])].sort();
+          const expected = ['activeTab', 'scripting'].sort();
+          if (JSON.stringify(permissions) !== JSON.stringify(expected)) {
+            throw new Error(`Unexpected permissions: ${JSON.stringify(permissions)}`);
+          }
+          if (manifest.host_permissions?.length) {
+            throw new Error(`Production host_permissions must be empty: ${JSON.stringify(manifest.host_permissions)}`);
+          }
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: zen-devtool-v0.3-extension
+          path: packages/extension/dist/
+          if-no-files-found: error
+          retention-days: 14

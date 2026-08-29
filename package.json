@@ -1,0 +1,38 @@
+{
+  "name": "devtool",
+  "version": "0.3.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.24.0",
+  "engines": {
+    "node": ">=22.14.0"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @devtool/lab dev",
+    "build": "pnpm build:core && pnpm build:extension && pnpm build:lab",
+    "build:core": "pnpm --filter @devtool/core build",
+    "build:extension": "pnpm --filter @devtool/extension build",
+    "build:lab": "pnpm --filter @devtool/lab build",
+    "lint": "eslint . --max-warnings=0",
+    "typecheck": "tsc --noEmit -p tsconfig.json && pnpm -r typecheck",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "pnpm build:extension && pnpm --filter @devtool/extension build:e2e && playwright test",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm test:e2e"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@playwright/test": "1.62.1",
+    "@types/chrome": "0.2.7",
+    "@types/node": "26.4.0",
+    "@vitest/coverage-v8": "4.1.10",
+    "eslint": "10.9.1",
+    "globals": "17.11.0",
+    "prettier": "3.9.6",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.68.0",
+    "vitest": "4.1.10"
+  }
+}
