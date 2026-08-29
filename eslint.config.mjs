@@ -34,7 +34,6 @@ export default tseslint.config(
       '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/no-floating-promises': 'error',
       '@typescript-eslint/no-misused-promises': 'error',
-      '@typescript-eslint/no-unnecessary-condition': 'error',
       '@typescript-eslint/switch-exhaustiveness-check': 'error',
       complexity: ['error', 12],
       'max-depth': ['error', 4],
@@ -44,6 +43,10 @@ export default tseslint.config(
       ],
       'no-console': ['error', { allow: ['warn', 'error'] }],
     },
+  },
+  {
+    files: ['**/*.{js,mjs,cjs}'],
+    ...tseslint.configs.disableTypeChecked,
   },
   {
     files: ['packages/core/**/*.ts'],

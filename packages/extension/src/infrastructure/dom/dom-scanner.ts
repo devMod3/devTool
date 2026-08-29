@@ -1,5 +1,5 @@
 import type { FormDescriptor, PageScan, ScannerPort, StateDescriptor, SurfaceDescriptor } from '@devtool/core';
-import { cleanText, controlDescriptor, exactPath, labelFor, roleFor, safeUrl, visible } from './dom-utils';
+import { cleanText, controlDescriptor, dynamicState, exactPath, labelFor, roleFor, safeUrl, visible } from './dom-utils';
 import type { ToolUiBoundary } from './tool-ui-boundary';
 
 export class BrowserScanner implements ScannerPort {
@@ -60,7 +60,7 @@ export class BrowserScanner implements ScannerPort {
         selector: exactPath(element),
         role: roleFor(element),
         label: labelFor(element),
-        state: [],
+        state: dynamicState(element),
         text: element.matches('input,textarea,select') ? '[value redacted]' : cleanText(element.textContent, 180),
       }));
   }
