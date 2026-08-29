@@ -71,6 +71,9 @@ export class DevToolController {
         this.recorder.clear();
         this.renderPff();
         return;
+      case 'guide':
+        this.view.showGuide();
+        return;
       case 'copy':
         void this.view.copyOutput();
         return;

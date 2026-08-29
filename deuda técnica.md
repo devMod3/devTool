@@ -49,11 +49,11 @@ Actualmente `.gitignore` ya excluye `dist/` y `dist-e2e/`. Falta convertir la po
 
 Por cada **10 unidades de capacidad** del equipo:
 
-| Presupuesto | Capacidad | Objetivo |
-| --- | ---: | --- |
-| Refactor + Boy Scout Rule | **70%** | Reducir complejidad y mejorar el código tocado sin cambiar comportamiento |
-| Deuda técnica planificada | **20%** | Eliminar riesgos estructurales que no caben naturalmente dentro de una feature |
-| Verificación / integración / release | **10%** | Tests, revisión final, artefactos reproducibles y validación real |
+| Presupuesto                          | Capacidad | Objetivo                                                                       |
+| ------------------------------------ | --------: | ------------------------------------------------------------------------------ |
+| Refactor + Boy Scout Rule            |   **70%** | Reducir complejidad y mejorar el código tocado sin cambiar comportamiento      |
+| Deuda técnica planificada            |   **20%** | Eliminar riesgos estructurales que no caben naturalmente dentro de una feature |
+| Verificación / integración / release |   **10%** | Tests, revisión final, artefactos reproducibles y validación real              |
 
 ### Regla de gestión
 
@@ -426,10 +426,7 @@ Esto es correcto desde seguridad, pero el contrato semántico debe estar central
 Definir envelopes compartidos y validadores runtime:
 
 ```ts
-type ProbeEvent =
-  | RouteProbeEvent
-  | FetchProbeEvent
-  | XhrProbeEvent;
+type ProbeEvent = RouteProbeEvent | FetchProbeEvent | XhrProbeEvent;
 ```
 
 No confiar en casts; validar datos externos antes de convertirlos al dominio.
