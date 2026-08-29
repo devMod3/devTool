@@ -102,7 +102,28 @@ function scanWith(controls: readonly ControlDescriptor[], title = 'Fixture'): Pa
   };
 }
 
-describe('flow generators', () => {
+describe('screen flow generator', () => {
+  it('renders semantic outcomes for visible controls', () => {
+    const screen = generateScreenFlow(
+      scanWith([linkControl, submitControl, toggleControl, selectControl, controlledAction]),
+    );
+    expect(screen).toContain('[Siguiente]');
+    expect(screen).toContain('≈ → https://example.com/next');
+    expect(screen).toContain('≈ <Enviar formulario>');
+    expect(screen).toContain('≈ {Cambiar estado}');
+    expect(screen).toContain('(Categoría)');
+    expect(screen).toContain('≈ {Actualizar valor local}');
+    expect(screen).toContain('≈ {Controla #panel}');
+  });
+
+  it('renders empty screen fallback with the default page title', () => {
+    const screen = generateScreenFlow(scanWith([inputControl], ''));
+    expect(screen).toContain('S01 · Página');
+    expect(screen).toContain('⊘ Sin acciones visibles detectadas');
+  });
+});
+
+describe('PFF function evidence', () => {
   it('never presents an unobserved action as observed', () => {
     const pff = generatePff(createSnapshot(scan, []));
     expect(pff).toContain('⊘ Resultado no observable sin ejecutar la acción');
@@ -125,31 +146,16 @@ describe('flow generators', () => {
     expect(pff).toContain('*Cobertura observacional* 50%');
   });
 
-  it('renders screen outcomes for navigation, submit, toggle, select and controlled actions', () => {
-    const screen = generateScreenFlow(
-      scanWith([linkControl, submitControl, toggleControl, selectControl, controlledAction]),
-    );
-    expect(screen).toContain('[Siguiente]');
-    expect(screen).toContain('≈ → https://example.com/next');
-    expect(screen).toContain('≈ <Enviar formulario>');
-    expect(screen).toContain('≈ {Cambiar estado}');
-    expect(screen).toContain('(Categoría)');
-    expect(screen).toContain('≈ {Actualizar valor local}');
-    expect(screen).toContain('≈ {Controla #panel}');
-  });
-
-  it('renders empty screen and PFF fallbacks with the default page title', () => {
-    const emptyScan = scanWith([inputControl], '');
-    const screen = generateScreenFlow(emptyScan);
-    const pff = generatePff(createSnapshot(emptyScan, []));
-    expect(screen).toContain('S01 · Página');
-    expect(screen).toContain('⊘ Sin acciones visibles detectadas');
+  it('renders empty PFF fallback and full zero-function coverage', () => {
+    const pff = generatePff(createSnapshot(scanWith([inputControl], ''), []));
     expect(pff).toContain('PFF-01 · Página');
     expect(pff).toContain('⊘ Sin funciones interactivas detectables');
     expect(pff).toContain('*Cobertura observacional* 100%');
   });
+});
 
-  it('formats checkbox, radio and required input interaction evidence', () => {
+describe('PFF interaction evidence', () => {
+  it('formats checkbox, radio and required input interactions', () => {
     const events: FlowEvent[] = [
       {
         id: 'E001',
@@ -191,7 +197,9 @@ describe('flow generators', () => {
     expect(pff).toContain('[Radio: Opción A] · click');
     expect(pff).toContain('[Publicar] · submit');
   });
+});
 
+describe('PFF system evidence', () => {
   it('renders route and network evidence including failed requests', () => {
     const events: FlowEvent[] = [
       {
@@ -275,8 +283,10 @@ describe('flow generators', () => {
     expect(pff).toContain('✓ {Cambio de estado}');
     expect(pff).toContain('Aviso · hidden · visible=false');
   });
+});
 
-  it('preserves snapshot immutability by copying the events array', () => {
+describe('snapshot creation', () => {
+  it('copies the events array', () => {
     const events: FlowEvent[] = [
       {
         id: 'E001',
