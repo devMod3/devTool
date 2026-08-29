@@ -4,5 +4,6 @@ coverage/
 playwright-report/
 test-results/
 packages/extension/dist/
+packages/extension/dist-e2e/
 *.log
 .DS_Store
