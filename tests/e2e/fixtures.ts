@@ -6,7 +6,7 @@ export const test = base.extend<{
   extensionWorker: Worker;
 }>({
   context: async ({}, use) => {
-    const extensionPath = join(process.cwd(), 'packages/extension/dist');
+    const extensionPath = join(process.cwd(), 'packages/extension/dist-e2e');
     const context = await chromium.launchPersistentContext('', {
       channel: 'chromium',
       baseURL: 'http://127.0.0.1:3000',
