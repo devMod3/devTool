@@ -148,7 +148,7 @@ export function actionKind(element: Element): ControlKind {
   if (element instanceof HTMLSelectElement) return 'select';
   if (element instanceof HTMLTextAreaElement) return 'input';
   if (element instanceof HTMLInputElement) return inputActionKind(element);
-  if (element instanceof HTMLSummaryElement) return 'toggle';
+  if (element.tagName === 'SUMMARY') return 'toggle';
   return 'action';
 }
 
