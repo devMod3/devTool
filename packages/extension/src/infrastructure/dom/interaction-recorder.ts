@@ -37,6 +37,7 @@ const MUTATION_ATTRIBUTES = [
 const MAX_EVENTS = 300;
 
 type PendingChange = StateChangeEvent['changes'][number];
+type ProbePayload = Record<string, unknown>;
 
 export class BrowserRecorder implements RecorderPort {
   private readonly entries: FlowEvent[] = [];
@@ -143,9 +144,9 @@ export class BrowserRecorder implements RecorderPort {
   private readonly onMutations = (mutations: readonly MutationRecord[]): void => {
     if (!this.recordingFlag) return;
     for (const mutation of mutations) this.collectMutation(mutation);
-    if (this.mutationTimer === undefined) {
-      this.mutationTimer = globalThis.setTimeout(() => this.flushMutations(), 180);
-    }
+    this.mutationTimer ??= globalThis.setTimeout(() => {
+      this.flushMutations();
+    }, 180);
   };
 
   private collectMutation(mutation: MutationRecord): void {
@@ -179,40 +180,51 @@ export class BrowserRecorder implements RecorderPort {
     this.push(this.lastActionId ? { ...base, after: this.lastActionId } : base);
   }
 
-  private readonly onProbeMessage = (event: MessageEvent<unknown>): void => {
-    if (!this.recordingFlag || typeof event.data !== 'object' || event.data === null) return;
+  private readProbePayload(event: MessageEvent<unknown>): ProbePayload | null {
+    if (typeof event.data !== 'object' || event.data === null) return null;
     const envelope = event.data as { source?: unknown; payload?: unknown };
-    if (
-      envelope.source !== PAGE_PROBE_SOURCE ||
-      typeof envelope.payload !== 'object' ||
-      envelope.payload === null
-    )
-      return;
-    const payload = envelope.payload as Record<string, unknown>;
-    if (payload.kind === 'route' && typeof payload.url === 'string') {
-      this.push({
-        id: this.nextId(),
-        at: this.readAt(payload.at),
-        evidence: 'observed',
-        type: 'route',
-        detail: { mode: String(payload.mode ?? 'route'), url: payload.url },
-      });
-    }
-    if (payload.kind === 'network' && typeof payload.url === 'string') {
-      this.push({
-        id: this.nextId(),
-        at: this.readAt(payload.at),
-        evidence: 'observed',
-        type: 'network',
-        detail: {
-          method: String(payload.method ?? 'GET'),
-          url: payload.url,
-          status: typeof payload.status === 'number' ? payload.status : null,
-          ok: Boolean(payload.ok),
-          durationMs: typeof payload.durationMs === 'number' ? payload.durationMs : 0,
-        },
-      });
-    }
+    if (envelope.source !== PAGE_PROBE_SOURCE) return null;
+    if (typeof envelope.payload !== 'object' || envelope.payload === null) return null;
+    return envelope.payload as ProbePayload;
+  }
+
+  private recordRouteProbe(payload: ProbePayload): void {
+    if (payload.kind !== 'route' || typeof payload.url !== 'string') return;
+    this.push({
+      id: this.nextId(),
+      at: this.readAt(payload.at),
+      evidence: 'observed',
+      type: 'route',
+      detail: {
+        mode: typeof payload.mode === 'string' ? payload.mode : 'route',
+        url: payload.url,
+      },
+    });
+  }
+
+  private recordNetworkProbe(payload: ProbePayload): void {
+    if (payload.kind !== 'network' || typeof payload.url !== 'string') return;
+    this.push({
+      id: this.nextId(),
+      at: this.readAt(payload.at),
+      evidence: 'observed',
+      type: 'network',
+      detail: {
+        method: typeof payload.method === 'string' ? payload.method : 'GET',
+        url: payload.url,
+        status: typeof payload.status === 'number' ? payload.status : null,
+        ok: payload.ok === true,
+        durationMs: typeof payload.durationMs === 'number' ? payload.durationMs : 0,
+      },
+    });
+  }
+
+  private readonly onProbeMessage = (event: MessageEvent<unknown>): void => {
+    if (!this.recordingFlag) return;
+    const payload = this.readProbePayload(event);
+    if (!payload) return;
+    this.recordRouteProbe(payload);
+    this.recordNetworkProbe(payload);
   };
 
   private readAt(value: unknown): number {
