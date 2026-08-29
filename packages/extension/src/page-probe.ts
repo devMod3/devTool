@@ -6,11 +6,12 @@ const runtime = globalThis as ProbeGlobal;
 if (!runtime[PAGE_PROBE_KEY]) {
   let active = false;
 
-  const safeUrl = (raw: unknown): string => {
+  const safeUrl = (raw: string | URL): string => {
     try {
-      const url = new URL(String(raw ?? ''), document.baseURI);
-      if (url.protocol === 'http:' || url.protocol === 'https:')
+      const url = new URL(raw, document.baseURI);
+      if (url.protocol === 'http:' || url.protocol === 'https:') {
         return `${url.origin}${url.pathname}`.slice(0, 800);
+      }
       return `${url.protocol}[redacted]`;
     } catch {
       return '[unparseable URL]';
@@ -39,28 +40,24 @@ if (!runtime[PAGE_PROBE_KEY]) {
   const pushState = history.pushState.bind(history);
   const replaceState = history.replaceState.bind(history);
   history.pushState = (state, unused, url) => {
-    const result = pushState(state, unused, url);
+    pushState(state, unused, url);
     emit('route', { mode: 'pushState', url: safeUrl(location.href) });
-    return result;
   };
   history.replaceState = (state, unused, url) => {
-    const result = replaceState(state, unused, url);
+    replaceState(state, unused, url);
     emit('route', { mode: 'replaceState', url: safeUrl(location.href) });
-    return result;
   };
-  globalThis.addEventListener('popstate', () =>
-    emit('route', { mode: 'popstate', url: safeUrl(location.href) }),
-  );
-  globalThis.addEventListener('hashchange', () =>
-    emit('route', { mode: 'hashchange', url: safeUrl(location.href) }),
-  );
+  globalThis.addEventListener('popstate', () => {
+    emit('route', { mode: 'popstate', url: safeUrl(location.href) });
+  });
+  globalThis.addEventListener('hashchange', () => {
+    emit('route', { mode: 'hashchange', url: safeUrl(location.href) });
+  });
 
   const originalFetch = globalThis.fetch.bind(globalThis);
   globalThis.fetch = async (input, init) => {
     const requestUrl = input instanceof Request ? input.url : input;
-    const method = String(
-      init?.method ?? (input instanceof Request ? input.method : 'GET'),
-    ).toUpperCase();
+    const method = (init?.method ?? (input instanceof Request ? input.method : 'GET')).toUpperCase();
     const startedAt = performance.now();
     try {
       const response = await originalFetch(input, init);
@@ -88,6 +85,7 @@ if (!runtime[PAGE_PROBE_KEY]) {
   };
 
   const xhrMeta = new WeakMap<XMLHttpRequest, { method: string; url: string }>();
+  // eslint-disable-next-line @typescript-eslint/unbound-method -- Captured deliberately before the prototype is patched; invoked with .call(this).
   const originalOpen = XMLHttpRequest.prototype.open;
   XMLHttpRequest.prototype.open = function open(
     method: string,
@@ -97,9 +95,10 @@ if (!runtime[PAGE_PROBE_KEY]) {
     password?: string | null,
   ): void {
     xhrMeta.set(this, { method: method.toUpperCase(), url: safeUrl(url) });
-    originalOpen.call(this, method, String(url), async, username ?? null, password ?? null);
-  } as typeof XMLHttpRequest.prototype.open;
+    originalOpen.call(this, method, url, async, username ?? null, password ?? null);
+  };
 
+  // eslint-disable-next-line @typescript-eslint/unbound-method -- Captured deliberately before the prototype is patched; invoked with .call(this).
   const originalSend = XMLHttpRequest.prototype.send;
   XMLHttpRequest.prototype.send = function send(
     body?: Document | XMLHttpRequestBodyInit | null,
