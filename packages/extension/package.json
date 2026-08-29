@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "node scripts/build.mjs",
+    "build:e2e": "node scripts/build-e2e.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run src"
   },
