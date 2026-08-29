@@ -4,6 +4,11 @@ Colección de herramientas de desarrollo independientes de los proyectos que ins
 
 ## Herramientas
 
-- [`inspector/`](./inspector/) — Zen Inspector, extensión Manifest V3 para Brave/Chromium.
+- [`inspector/`](./inspector/) — **Zen DevTool**, extensión Manifest V3 para Brave/Chromium con:
+  - Product Flow Mapper;
+  - Screen Flow;
+  - Product Functional Flow (PFF);
+  - grabación observacional de interacciones/estados/rutas/red;
+  - Zen Inspector DOM/UI.
 
-Cada herramienta debe permanecer autocontenida y con permisos mínimos.
+Cada herramienta debe permanecer autocontenida, local-first y con permisos mínimos.

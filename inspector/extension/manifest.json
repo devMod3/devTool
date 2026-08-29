@@ -1,21 +1,21 @@
 {
   "manifest_version": 3,
-  "name": "Zen Inspector",
-  "version": "0.1.0",
-  "description": "Inspector DOM local y privado para Brave/Chromium.",
+  "name": "Zen DevTool",
+  "version": "0.2.0",
+  "description": "Inspector DOM y generador local de Screen Flow + Product Functional Flow para Brave/Chromium.",
   "permissions": ["activeTab", "scripting"],
   "background": {
     "service_worker": "service-worker.js"
   },
   "action": {
-    "default_title": "Activar Zen Inspector"
+    "default_title": "Abrir Zen DevTool"
   },
   "commands": {
     "_execute_action": {
       "suggested_key": {
         "default": "Alt+Shift+Z"
       },
-      "description": "Activar o desactivar Zen Inspector"
+      "description": "Abrir o cerrar Zen DevTool"
     }
   }
 }

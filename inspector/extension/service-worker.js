@@ -1,10 +1,27 @@
 'use strict';
 
-async function toggleInspector(tab) {
+async function injectFlowMapper(tab) {
   if (!tab || typeof tab.id !== 'number') return;
   try {
     await chrome.scripting.executeScript({
       target: { tabId: tab.id },
+      world: 'MAIN',
+      files: ['page-probe.js']
+    });
+    await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      files: ['probe-bridge.js', 'flow.js']
+    });
+  } catch (error) {
+    console.warn('Zen DevTool no puede ejecutarse en esta página.', error);
+  }
+}
+
+async function toggleInspector(tabId) {
+  if (typeof tabId !== 'number') return;
+  try {
+    await chrome.scripting.executeScript({
+      target: { tabId },
       files: ['content.js']
     });
   } catch (error) {
@@ -13,5 +30,10 @@ async function toggleInspector(tab) {
 }
 
 chrome.action.onClicked.addListener((tab) => {
-  void toggleInspector(tab);
+  void injectFlowMapper(tab);
+});
+
+chrome.runtime.onMessage.addListener((message, sender) => {
+  if (message?.type !== 'ZEN_INSPECTOR_TOGGLE') return;
+  void toggleInspector(sender.tab?.id);
 });
