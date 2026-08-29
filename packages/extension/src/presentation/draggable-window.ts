@@ -70,7 +70,7 @@ export class DraggableWindow {
 
   private readonly onPointerMove = (event: PointerEvent): void => {
     const session = this.dragSession;
-    if (!session || session.pointerId !== event.pointerId) return;
+    if (session?.pointerId !== event.pointerId) return;
     const deltaX = event.clientX - session.originPointer.x;
     const deltaY = event.clientY - session.originPointer.y;
     this.setPosition(session.originPanel.x + deltaX, session.originPanel.y + deltaY);
