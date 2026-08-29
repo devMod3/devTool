@@ -98,7 +98,8 @@ if (!runtime[PAGE_PROBE_KEY]) {
   const xhrMeta = new WeakMap<XMLHttpRequest, { method: string; url: string }>();
   // eslint-disable-next-line @typescript-eslint/unbound-method -- Captured deliberately before the prototype is patched; invoked with .call(this).
   const originalOpen: XhrOpen = XMLHttpRequest.prototype.open;
-  XMLHttpRequest.prototype.open = function open(
+  const patchedOpen: XhrOpen = function patchedOpen(
+    this: XMLHttpRequest,
     method: string,
     url: string | URL,
     async = true,
@@ -108,6 +109,7 @@ if (!runtime[PAGE_PROBE_KEY]) {
     xhrMeta.set(this, { method: method.toUpperCase(), url: safeUrl(url) });
     originalOpen.call(this, method, url, async, username ?? null, password ?? null);
   };
+  XMLHttpRequest.prototype.open = patchedOpen;
 
   // eslint-disable-next-line @typescript-eslint/unbound-method -- Captured deliberately before the prototype is patched; invoked with .call(this).
   const originalSend = XMLHttpRequest.prototype.send;
