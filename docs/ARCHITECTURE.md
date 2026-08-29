@@ -7,7 +7,7 @@ Zen DevTool usa **Clean Architecture**, no MVC, porque el problema principal no 
 ```text
 ┌──────────────────────────────────────────────┐
 │ Presentation                                 │
-│ PanelView                                    │
+│ PanelView · DraggableWindow                  │
 ├──────────────────────────────────────────────┤
 │ Application                                  │
 │ DevToolController · use cases                │
@@ -21,6 +21,20 @@ Zen DevTool usa **Clean Architecture**, no MVC, porque el problema principal no 
 ```
 
 La regla obligatoria es **dependencias hacia adentro**. `@devtool/core` no conoce Chrome, DOM, Shadow DOM, Next.js ni UI.
+
+## Política de código fuente
+
+El código fuente del producto es **TypeScript / TSX**.
+
+```text
+packages/core/src/**       → TypeScript
+packages/extension/src/**  → TypeScript
+apps/lab/app/**            → TypeScript / TSX
+```
+
+Chromium ejecuta JavaScript; por tanto `esbuild` genera `.js` en `packages/extension/dist/`. Ese JavaScript es **artefacto compilado**, no fuente del producto, y no se versiona.
+
+`pnpm source:check` impide introducir `.js`, `.jsx`, `.cjs` o `.mjs` manual dentro de los árboles de producto. Configuración y tooling del repositorio pueden usar los formatos que requieran sus herramientas, pero no se distribuyen como lógica fuente de Zen DevTool.
 
 ## Responsabilidades
 
@@ -47,6 +61,41 @@ La regla obligatoria es **dependencias hacia adentro**. `@devtool/core` no conoc
 ## Invariante de interacción
 
 Toda UI propia debe llevar `data-zen-devtool-ui`. Antes de interceptar un evento, Inspector y Recorder comprueban el `composedPath()` completo. Un evento que pertenezca a DevTool **nunca puede ser cancelado por Inspector**.
+
+## Ventana Zen DevTool
+
+La herramienta es una **ventana flotante y movible**, no una caja anclada permanentemente a una esquina.
+
+Responsabilidades separadas:
+
+```text
+PanelView
+├── composición
+├── acciones
+├── estado visual
+└── output
+
+DraggableWindow
+├── pointer drag
+├── movimiento por teclado
+├── clamp al viewport
+├── respuesta a resize
+└── cleanup de listeners
+
+PanelStyles
+└── estilos de Presentation
+```
+
+Reglas:
+
+- arrastrar desde la barra superior mueve la ventana;
+- `Alt + flechas` mueve la ventana con teclado;
+- `Shift + Alt + flechas` usa un paso mayor;
+- la posición siempre se limita al viewport;
+- mover la ventana no debe disparar acciones de la página;
+- cerrar/ocultar no destruye la posición de la sesión actual;
+- no se persiste la posición en storage;
+- `dispose()` elimina todos los listeners de movimiento.
 
 ## Inspector Mode
 
