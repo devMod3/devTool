@@ -1,6 +1,15 @@
 import { PAGE_PROBE_CONTROL_SOURCE, PAGE_PROBE_KEY, PAGE_PROBE_SOURCE } from './shared/constants';
 
 type ProbeGlobal = typeof globalThis & Record<string, unknown>;
+type XhrOpen = (
+  this: XMLHttpRequest,
+  method: string,
+  url: string | URL,
+  async?: boolean,
+  username?: string | null,
+  password?: string | null,
+) => void;
+
 const runtime = globalThis as ProbeGlobal;
 
 if (!runtime[PAGE_PROBE_KEY]) {
@@ -88,7 +97,7 @@ if (!runtime[PAGE_PROBE_KEY]) {
 
   const xhrMeta = new WeakMap<XMLHttpRequest, { method: string; url: string }>();
   // eslint-disable-next-line @typescript-eslint/unbound-method -- Captured deliberately before the prototype is patched; invoked with .call(this).
-  const originalOpen = XMLHttpRequest.prototype.open;
+  const originalOpen = XMLHttpRequest.prototype.open as XhrOpen;
   XMLHttpRequest.prototype.open = function open(
     method: string,
     url: string | URL,
