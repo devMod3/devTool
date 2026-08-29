@@ -2,9 +2,19 @@ import type { ToolUiBoundary } from '../infrastructure/dom/tool-ui-boundary';
 import { DEVTOOL_HOST_TAG } from '../shared/constants';
 import { DraggableWindow } from './draggable-window';
 import { PANEL_STYLES } from './panel-styles';
+import { QUICK_GUIDE } from './quick-guide';
 
 export type PanelAction =
-  'scan' | 'record' | 'screen' | 'pff' | 'json' | 'inspector' | 'clear' | 'copy' | 'close';
+  | 'scan'
+  | 'record'
+  | 'screen'
+  | 'pff'
+  | 'json'
+  | 'inspector'
+  | 'clear'
+  | 'guide'
+  | 'copy'
+  | 'close';
 
 export class PanelView {
   private readonly host: HTMLElement;
@@ -53,6 +63,11 @@ export class PanelView {
 
   public setOutput(value: string): void {
     this.output.value = value;
+  }
+
+  public showGuide(): void {
+    this.setOutput(QUICK_GUIDE);
+    this.setStatus('Guía rápida');
   }
 
   public setStats(controls: number, surfaces: number, events: number): void {
@@ -123,6 +138,7 @@ export class PanelView {
       this.actionButton('JSON', 'json'),
       this.inspectorButton,
       this.actionButton('Limpiar', 'clear'),
+      this.actionButton('Guía', 'guide'),
       this.actionButton('Copiar', 'copy'),
       this.status,
     );
