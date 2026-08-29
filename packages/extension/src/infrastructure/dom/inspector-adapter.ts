@@ -57,7 +57,9 @@ export class BrowserInspector implements InspectorPort {
 
   public subscribe(listener: (active: boolean) => void): () => void {
     this.listeners.add(listener);
-    return () => this.listeners.delete(listener);
+    return () => {
+      this.listeners.delete(listener);
+    };
   }
 
   public dispose(): void {
@@ -112,14 +114,20 @@ export class BrowserInspector implements InspectorPort {
 
   private highlight(target: Element): void {
     const rect = target.getBoundingClientRect();
+    const left = String(Math.max(0, rect.left));
+    const top = String(Math.max(0, rect.top));
+    const width = String(Math.max(0, rect.width));
+    const height = String(Math.max(0, rect.height));
     Object.assign(this.outline.style, {
-      left: `${Math.max(0, rect.left)}px`,
-      top: `${Math.max(0, rect.top)}px`,
-      width: `${Math.max(0, rect.width)}px`,
-      height: `${Math.max(0, rect.height)}px`,
+      left: `${left}px`,
+      top: `${top}px`,
+      width: `${width}px`,
+      height: `${height}px`,
     });
     this.outline.hidden = false;
-    this.hud.textContent = `${labelFor(target)} · ${Math.round(rect.width)}×${Math.round(rect.height)}`;
+    const roundedWidth = String(Math.round(rect.width));
+    const roundedHeight = String(Math.round(rect.height));
+    this.hud.textContent = `${labelFor(target)} · ${roundedWidth}×${roundedHeight}`;
     this.hud.hidden = false;
   }
 
@@ -142,7 +150,9 @@ export class BrowserInspector implements InspectorPort {
     const label = document.createElement('strong');
     label.textContent = '◉ INSPECTOR ACTIVO · Esc para salir';
     const exit = this.button('Desactivar');
-    exit.addEventListener('click', () => this.setActive(false));
+    exit.addEventListener('click', () => {
+      this.setActive(false);
+    });
     this.toolbar.append(label, exit);
   }
 
@@ -164,7 +174,9 @@ export class BrowserInspector implements InspectorPort {
       });
     });
     const exit = this.button('Salir de Inspector');
-    exit.addEventListener('click', () => this.setActive(false));
+    exit.addEventListener('click', () => {
+      this.setActive(false);
+    });
     actions.append(copy, exit);
     this.panel.append(header, this.selector, actions);
     this.panel.hidden = true;
