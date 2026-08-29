@@ -14,7 +14,9 @@ export default function InspectorFixturePage() {
         <button
           type="button"
           data-testid="target-action"
-          onClick={() => setCount((value) => value + 1)}
+          onClick={() => {
+            setCount((value) => value + 1);
+          }}
         >
           Target action
         </button>
@@ -24,7 +26,9 @@ export default function InspectorFixturePage() {
           type="button"
           aria-expanded={expanded}
           aria-controls="fixture-details"
-          onClick={() => setExpanded((value) => !value)}
+          onClick={() => {
+            setExpanded((value) => !value);
+          }}
         >
           Toggle details
         </button>
