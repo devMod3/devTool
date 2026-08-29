@@ -29,10 +29,12 @@ if (existing) {
 
   runtime[DEVTOOL_API_KEY] = Object.freeze({
     version: '0.3.0',
-    toggle: () => controller.toggle(),
+    toggle: () => {
+      controller.toggle();
+    },
     destroy: () => {
       controller.dispose();
-      delete runtime[DEVTOOL_API_KEY];
+      runtime[DEVTOOL_API_KEY] = undefined;
     },
   } satisfies DevToolApi);
 }
