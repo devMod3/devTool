@@ -3,7 +3,7 @@ name: Package Extension
 on:
   push:
     branches:
-      - refactor/clean-architecture-v0.3
+      - artifact/zen-devtool-v0.3-20260829
   workflow_dispatch:
 
 permissions:
