@@ -10,7 +10,7 @@ async function injectFlowMapper(tab) {
     });
     await chrome.scripting.executeScript({
       target: { tabId: tab.id },
-      files: ['flow.js']
+      files: ['probe-bridge.js', 'flow.js']
     });
   } catch (error) {
     console.warn('Zen DevTool no puede ejecutarse en esta página.', error);
