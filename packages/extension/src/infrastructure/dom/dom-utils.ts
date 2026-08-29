@@ -16,10 +16,7 @@ export function safeUrl(raw: string | URL): string {
 }
 
 export function cleanText(value: string | null | undefined, max = MAX_TEXT): string {
-  return (value ?? '')
-    .replace(/\s+/gu, ' ')
-    .trim()
-    .slice(0, max);
+  return (value ?? '').replace(/\s+/gu, ' ').trim().slice(0, max);
 }
 
 function cssEscape(value: string): string {

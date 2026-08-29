@@ -57,7 +57,9 @@ if (!runtime[PAGE_PROBE_KEY]) {
   const originalFetch = globalThis.fetch.bind(globalThis);
   globalThis.fetch = async (input, init) => {
     const requestUrl = input instanceof Request ? input.url : input;
-    const method = (init?.method ?? (input instanceof Request ? input.method : 'GET')).toUpperCase();
+    const method = (
+      init?.method ?? (input instanceof Request ? input.method : 'GET')
+    ).toUpperCase();
     const startedAt = performance.now();
     try {
       const response = await originalFetch(input, init);
