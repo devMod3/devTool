@@ -20,6 +20,7 @@ async function injectDevTool(extensionWorker: Worker): Promise<void> {
 test('Inspector can be disabled from DevTool without trapping clicks', async ({ context, extensionWorker }) => {
   const page = await context.newPage();
   await page.goto('/fixtures/inspector');
+  await page.bringToFront();
   await injectDevTool(extensionWorker);
 
   const devTool = page.locator('zen-devtool-root');
@@ -41,6 +42,7 @@ test('Inspector can be disabled from DevTool without trapping clicks', async ({ 
 test('Escape is a guaranteed Inspector exit and private input values stay out of snapshots', async ({ context, extensionWorker }) => {
   const page = await context.newPage();
   await page.goto('/fixtures/inspector');
+  await page.bringToFront();
   await injectDevTool(extensionWorker);
 
   const devTool = page.locator('zen-devtool-root');
