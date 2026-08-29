@@ -26,7 +26,7 @@ export class BrowserScanner implements ScannerPort {
       page: {
         title: cleanText(document.title, 180),
         url: safeUrl(location.href),
-        viewport: `${innerWidth}×${innerHeight}`,
+        viewport: `${String(innerWidth)}×${String(innerHeight)}`,
       },
       surfaces: this.scanSurfaces(),
       controls: this.scanControls(),
@@ -51,7 +51,7 @@ export class BrowserScanner implements ScannerPort {
       .map((form) => ({
         selector: exactPath(form),
         label: labelFor(form),
-        method: String(form.method || 'get').toUpperCase(),
+        method: (form.method || 'get').toUpperCase(),
         action: safeUrl(form.action || location.href),
         requiredFields: [...form.elements]
           .filter((field): field is HTMLElement => field instanceof HTMLElement)
