@@ -97,7 +97,7 @@ if (!runtime[PAGE_PROBE_KEY]) {
 
   const xhrMeta = new WeakMap<XMLHttpRequest, { method: string; url: string }>();
   // eslint-disable-next-line @typescript-eslint/unbound-method -- Captured deliberately before the prototype is patched; invoked with .call(this).
-  const originalOpen = XMLHttpRequest.prototype.open as XhrOpen;
+  const originalOpen: XhrOpen = XMLHttpRequest.prototype.open;
   XMLHttpRequest.prototype.open = function open(
     method: string,
     url: string | URL,
