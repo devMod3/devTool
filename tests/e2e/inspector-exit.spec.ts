@@ -1,21 +1,5 @@
-import type { Worker } from '@playwright/test';
 import { expect, test } from './fixtures';
-
-async function injectDevTool(extensionWorker: Worker): Promise<void> {
-  await extensionWorker.evaluate(async () => {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (typeof tab?.id !== 'number') throw new Error('Active tab not found');
-    await chrome.scripting.executeScript({
-      target: { tabId: tab.id },
-      world: 'MAIN',
-      files: ['page-probe.js'],
-    });
-    await chrome.scripting.executeScript({
-      target: { tabId: tab.id },
-      files: ['content.js'],
-    });
-  });
-}
+import { injectDevTool } from './support/inject-devtool';
 
 test('Inspector can be disabled from DevTool without trapping clicks', async ({
   context,
@@ -97,6 +81,11 @@ test('DevTool window can move without losing controls or leaving the viewport', 
   const afterKeyboard = await panel.boundingBox();
   if (!afterKeyboard) throw new Error('DevTool window disappeared after keyboard move');
   expect(afterKeyboard.x).toBeLessThanOrEqual(afterDrag.x);
+
+  await devTool.getByRole('button', { name: 'Guía' }).click();
+  const guide = await devTool.locator('textarea.zf-output').inputValue();
+  expect(guide).toContain('RUTINA RECOMENDADA');
+  expect(guide).toContain('[PFF]');
 
   await devTool.getByRole('button', { name: 'JSON' }).click();
   const output = await devTool.locator('textarea.zf-output').inputValue();
