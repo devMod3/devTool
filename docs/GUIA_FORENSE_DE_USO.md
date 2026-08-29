@@ -34,11 +34,11 @@ Página web
 
 Zen DevTool utiliza tres niveles:
 
-| Marca | Significado | Interpretación |
-| --- | --- | --- |
-| `✓` | Observado | Ocurrió realmente durante la sesión o está directamente presente en la superficie analizada |
-| `≈` | Inferido | La herramienta deduce intención a partir de DOM, ARIA, enlaces, roles o semántica |
-| `⊘` | No verificable | La página actual no ofrece evidencia suficiente para afirmar el comportamiento |
+| Marca | Significado    | Interpretación                                                                              |
+| ----- | -------------- | ------------------------------------------------------------------------------------------- |
+| `✓`   | Observado      | Ocurrió realmente durante la sesión o está directamente presente en la superficie analizada |
+| `≈`   | Inferido       | La herramienta deduce intención a partir de DOM, ARIA, enlaces, roles o semántica           |
+| `⊘`   | No verificable | La página actual no ofrece evidencia suficiente para afirmar el comportamiento              |
 
 Nunca debe leerse una inferencia como si fuese una ejecución confirmada.
 
@@ -1121,20 +1121,20 @@ ABRIR ZEN DEVTOOL
 
 # 39. Tabla rápida de funciones
 
-| Función | Hace | No hace |
-| --- | --- | --- |
-| Mover | Reposiciona DevTool | No altera producto ni PFF |
-| Analizar | Escanea superficie actual | No ejecuta botones |
-| Grabar | Inicia observación del recorrido | No captura valores privados |
-| Detener | Finaliza captura | No borra eventos |
-| Screen Flow | Representa superficies/navegación | No prueba lógica interna |
-| PFF | Representa función/evidencia | No inventa backend |
-| JSON | Muestra snapshot estructurado | No añade datos extra |
-| Inspector | Selecciona/diagnostica elementos | No debe usarse como click funcional |
-| Limpiar | Borra eventos de sesión | No borra la página |
-| Copiar | Copia salida | No envía datos a servidor |
-| Cerrar | Oculta ventana | No destruye la página |
-| Escape | Sale de Inspector | No cierra toda la herramienta |
+| Función     | Hace                              | No hace                             |
+| ----------- | --------------------------------- | ----------------------------------- |
+| Mover       | Reposiciona DevTool               | No altera producto ni PFF           |
+| Analizar    | Escanea superficie actual         | No ejecuta botones                  |
+| Grabar      | Inicia observación del recorrido  | No captura valores privados         |
+| Detener     | Finaliza captura                  | No borra eventos                    |
+| Screen Flow | Representa superficies/navegación | No prueba lógica interna            |
+| PFF         | Representa función/evidencia      | No inventa backend                  |
+| JSON        | Muestra snapshot estructurado     | No añade datos extra                |
+| Inspector   | Selecciona/diagnostica elementos  | No debe usarse como click funcional |
+| Limpiar     | Borra eventos de sesión           | No borra la página                  |
+| Copiar      | Copia salida                      | No envía datos a servidor           |
+| Cerrar      | Oculta ventana                    | No destruye la página               |
+| Escape      | Sale de Inspector                 | No cierra toda la herramienta       |
 
 ---
 

@@ -16,8 +16,9 @@ interface DragSession {
 function isInteractiveTarget(target: EventTarget | null): boolean {
   return (
     target instanceof Element &&
-    target.closest('button, a, input, textarea, select, [contenteditable="true"], [data-no-drag]') !==
-      null
+    target.closest(
+      'button, a, input, textarea, select, [contenteditable="true"], [data-no-drag]',
+    ) !== null
   );
 }
 
@@ -82,7 +83,10 @@ export class DraggableWindow {
 
   private readonly onKeyDown = (event: KeyboardEvent): void => {
     if (!event.altKey) return;
-    const delta = this.keyboardDelta(event.key, event.shiftKey ? LARGE_KEYBOARD_STEP : DEFAULT_KEYBOARD_STEP);
+    const delta = this.keyboardDelta(
+      event.key,
+      event.shiftKey ? LARGE_KEYBOARD_STEP : DEFAULT_KEYBOARD_STEP,
+    );
     if (!delta) return;
     const rect = this.panel.getBoundingClientRect();
     this.ensureExplicitPosition(rect.left, rect.top);
