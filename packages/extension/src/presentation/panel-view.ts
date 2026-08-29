@@ -40,7 +40,9 @@ export class PanelView {
 
   public onAction(listener: (action: PanelAction) => void): () => void {
     this.listeners.add(listener);
-    return () => this.listeners.delete(listener);
+    return () => {
+      this.listeners.delete(listener);
+    };
   }
 
   public setOutput(value: string): void {
@@ -48,7 +50,7 @@ export class PanelView {
   }
 
   public setStats(controls: number, surfaces: number, events: number): void {
-    this.stats.textContent = `${controls} controles · ${surfaces} superficies · ${events} eventos observados`;
+    this.stats.textContent = `${String(controls)} controles · ${String(surfaces)} superficies · ${String(events)} eventos observados`;
   }
 
   public setRecording(recording: boolean): void {
@@ -63,10 +65,11 @@ export class PanelView {
 
   public setStatus(message: string): void {
     this.status.textContent = message;
-    if (message)
+    if (message) {
       globalThis.setTimeout(() => {
         if (this.status.textContent === message) this.status.textContent = '';
       }, 1800);
+    }
   }
 
   public toggle(): void {
