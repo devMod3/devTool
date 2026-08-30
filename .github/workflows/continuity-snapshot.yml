@@ -1,0 +1,621 @@
+name: ResurrecciónLLM — Continuity Snapshot
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_repo:
+        description: "Target repository in owner/name form"
+        required: true
+        type: string
+      target_ref:
+        description: "Branch, tag, or SHA to observe; empty = target default branch"
+        required: false
+        default: ""
+        type: string
+      working_branch:
+        description: "Optional working-branch hint to verify"
+        required: false
+        default: ""
+        type: string
+      active_pr:
+        description: "Optional PR number hint to verify"
+        required: false
+        default: ""
+        type: string
+      persist_state:
+        description: "Commit the refreshed registry back to devTool"
+        required: true
+        default: true
+        type: boolean
+  repository_dispatch:
+    types: [resurrection-snapshot]
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: resurrection-llm-state
+  cancel-in-progress: false
+
+jobs:
+  snapshot:
+    name: Reconstruct exact repository state
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      STATE_FILE: "ResurrecciónLLM/CONTINUITY_STATE.json"
+      REPORT_DIR: "ResurrecciónLLM/.generated"
+      RESURRECTION_TOKEN: ${{ secrets.RESURRECTION_GITHUB_TOKEN }}
+      FALLBACK_TOKEN: ${{ github.token }}
+
+    steps:
+      - name: Checkout devTool
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: true
+          fetch-depth: 0
+
+      - name: Resolve request
+        id: request
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_REPO: ${{ inputs.target_repo || '' }}
+          INPUT_REF: ${{ inputs.target_ref || '' }}
+          INPUT_BRANCH: ${{ inputs.working_branch || '' }}
+          INPUT_PR: ${{ inputs.active_pr || '' }}
+          INPUT_PERSIST: ${{ inputs.persist_state }}
+          DISPATCH_REPO: ${{ github.event.client_payload.target_repo || '' }}
+          DISPATCH_REF: ${{ github.event.client_payload.target_ref || '' }}
+          DISPATCH_BRANCH: ${{ github.event.client_payload.working_branch || '' }}
+          DISPATCH_PR: ${{ github.event.client_payload.active_pr || '' }}
+          DISPATCH_PERSIST: ${{ github.event.client_payload.persist_state || '' }}
+        run: |
+          set -euo pipefail
+
+          if [[ "$EVENT_NAME" == "repository_dispatch" ]]; then
+            target_repo="$DISPATCH_REPO"
+            target_ref="$DISPATCH_REF"
+            working_branch="$DISPATCH_BRANCH"
+            active_pr="$DISPATCH_PR"
+            persist_state="${DISPATCH_PERSIST:-true}"
+          else
+            target_repo="$INPUT_REPO"
+            target_ref="$INPUT_REF"
+            working_branch="$INPUT_BRANCH"
+            active_pr="$INPUT_PR"
+            persist_state="${INPUT_PERSIST:-true}"
+          fi
+
+          if [[ ! "$target_repo" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]]; then
+            echo "::error::target_repo must use owner/name syntax."
+            exit 2
+          fi
+
+          if [[ -n "$active_pr" && ! "$active_pr" =~ ^[0-9]+$ ]]; then
+            echo "::error::active_pr must be empty or numeric."
+            exit 2
+          fi
+
+          case "$persist_state" in
+            true|false) ;;
+            *)
+              echo "::error::persist_state must be true or false."
+              exit 2
+              ;;
+          esac
+
+          {
+            echo "target_repo=$target_repo"
+            echo "target_ref=$target_ref"
+            echo "working_branch=$working_branch"
+            echo "active_pr=$active_pr"
+            echo "persist_state=$persist_state"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Validate continuity registry contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq -e '
+            .schema_version == "4.0.0"
+            and (.projects | type == "object")
+            and (.contract.history_limit | type == "number")
+          ' "$STATE_FILE" >/dev/null
+
+      - name: Reconstruct target state
+        id: snapshot
+        shell: bash
+        env:
+          TARGET_REPO: ${{ steps.request.outputs.target_repo }}
+          REQUESTED_REF: ${{ steps.request.outputs.target_ref }}
+          WORKING_BRANCH_HINT: ${{ steps.request.outputs.working_branch }}
+          ACTIVE_PR_HINT: ${{ steps.request.outputs.active_pr }}
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p "$REPORT_DIR"
+
+          API_TOKEN="$RESURRECTION_TOKEN"
+          if [[ -z "$API_TOKEN" ]]; then
+            API_TOKEN="$FALLBACK_TOKEN"
+          fi
+
+          api_get() {
+            local endpoint="$1"
+            local url="https://api.github.com${endpoint}"
+            local body
+            local code
+            body="$(mktemp)"
+
+            if [[ -n "$API_TOKEN" ]]; then
+              code="$(curl --silent --show-error --location \
+                --output "$body" --write-out '%{http_code}' \
+                --header 'Accept: application/vnd.github+json' \
+                --header 'X-GitHub-Api-Version: 2022-11-28' \
+                --header "Authorization: Bearer ${API_TOKEN}" \
+                "$url")"
+            else
+              code="$(curl --silent --show-error --location \
+                --output "$body" --write-out '%{http_code}' \
+                --header 'Accept: application/vnd.github+json' \
+                --header 'X-GitHub-Api-Version: 2022-11-28' \
+                "$url")"
+            fi
+
+            if [[ -z "$RESURRECTION_TOKEN" && ( "$code" == "403" || "$code" == "404" ) ]]; then
+              code="$(curl --silent --show-error --location \
+                --output "$body" --write-out '%{http_code}' \
+                --header 'Accept: application/vnd.github+json' \
+                --header 'X-GitHub-Api-Version: 2022-11-28' \
+                "$url")"
+            fi
+
+            if [[ ! "$code" =~ ^2 ]]; then
+              echo "::warning::GitHub API ${endpoint} returned HTTP ${code}." >&2
+              rm -f "$body"
+              return 1
+            fi
+
+            cat "$body"
+            rm -f "$body"
+          }
+
+          observed_at="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+
+          if ! repo_json="$(api_get "/repos/${TARGET_REPO}")"; then
+            echo "::error::Cannot read ${TARGET_REPO}. For private repositories configure RESURRECTION_GITHUB_TOKEN in devTool."
+            exit 3
+          fi
+
+          default_branch="$(jq -r '.default_branch' <<<"$repo_json")"
+          target_ref="$REQUESTED_REF"
+          if [[ -z "$target_ref" ]]; then
+            target_ref="$default_branch"
+          fi
+          encoded_ref="$(jq -rn --arg value "$target_ref" '$value | @uri')"
+
+          if ! commit_json="$(api_get "/repos/${TARGET_REPO}/commits/${encoded_ref}")"; then
+            echo "::error::Cannot resolve ${TARGET_REPO}@${target_ref}."
+            exit 4
+          fi
+
+          head_sha="$(jq -r '.sha' <<<"$commit_json")"
+          short_sha="${head_sha:0:12}"
+
+          open_prs_json='[]'
+          if fetched="$(api_get "/repos/${TARGET_REPO}/pulls?state=open&per_page=100")"; then
+            open_prs_json="$fetched"
+          fi
+
+          active_pr_json='null'
+          if [[ -n "$ACTIVE_PR_HINT" ]]; then
+            if fetched="$(api_get "/repos/${TARGET_REPO}/pulls/${ACTIVE_PR_HINT}")"; then
+              active_pr_json="$fetched"
+            fi
+          elif [[ -n "$WORKING_BRANCH_HINT" ]]; then
+            active_pr_json="$(jq --arg branch "$WORKING_BRANCH_HINT" '
+              [ .[] | select(.head.ref == $branch) ][0] // null
+            ' <<<"$open_prs_json")"
+          fi
+
+          working_branch_json='null'
+          if [[ -n "$WORKING_BRANCH_HINT" ]]; then
+            encoded_branch="$(jq -rn --arg value "$WORKING_BRANCH_HINT" '$value | @uri')"
+            if fetched="$(api_get "/repos/${TARGET_REPO}/branches/${encoded_branch}")"; then
+              working_branch_json="$(jq '{
+                name,
+                exists: true,
+                sha: .commit.sha,
+                protected
+              }' <<<"$fetched")"
+            else
+              working_branch_json="$(jq -n --arg name "$WORKING_BRANCH_HINT" '{
+                name: $name,
+                exists: false,
+                sha: null,
+                protected: null
+              }')"
+            fi
+          fi
+
+          check_runs_json='{"total_count":0,"check_runs":[]}'
+          if fetched="$(api_get "/repos/${TARGET_REPO}/commits/${head_sha}/check-runs?per_page=100")"; then
+            check_runs_json="$fetched"
+          fi
+
+          workflow_runs_json='{"total_count":0,"workflow_runs":[]}'
+          if fetched="$(api_get "/repos/${TARGET_REPO}/actions/runs?head_sha=${head_sha}&per_page=50")"; then
+            workflow_runs_json="$fetched"
+          fi
+
+          checks_total="$(jq '.total_count // 0' <<<"$check_runs_json")"
+          checks_pending="$(jq '[.check_runs[] | select(.status != "completed")] | length' <<<"$check_runs_json")"
+          checks_failed="$(jq '[
+            .check_runs[]
+            | select(.status == "completed")
+            | select((.conclusion // "UNKNOWN") as $c
+              | ($c != "success" and $c != "neutral" and $c != "skipped"))
+          ] | length' <<<"$check_runs_json")"
+
+          runs_total="$(jq '.total_count // 0' <<<"$workflow_runs_json")"
+          runs_pending="$(jq '[.workflow_runs[] | select(.status != "completed")] | length' <<<"$workflow_runs_json")"
+          runs_failed="$(jq '[
+            .workflow_runs[]
+            | select(.status == "completed")
+            | select((.conclusion // "UNKNOWN") as $c
+              | ($c != "success" and $c != "neutral" and $c != "skipped"))
+          ] | length' <<<"$workflow_runs_json")"
+
+          ci_status="UNKNOWN"
+          if (( checks_total > 0 )); then
+            if (( checks_pending > 0 )); then
+              ci_status="PENDING"
+            elif (( checks_failed > 0 )); then
+              ci_status="FAIL"
+            else
+              ci_status="PASS"
+            fi
+          elif (( runs_total > 0 )); then
+            if (( runs_pending > 0 )); then
+              ci_status="PENDING"
+            elif (( runs_failed > 0 )); then
+              ci_status="FAIL"
+            else
+              ci_status="PASS"
+            fi
+          fi
+
+          deployments_json='[]'
+          if fetched="$(api_get "/repos/${TARGET_REPO}/deployments?sha=${head_sha}&per_page=20")"; then
+            deployments_json="$fetched"
+          fi
+
+          latest_deployment_json='null'
+          deployment_status="UNKNOWN"
+          if (( "$(jq 'length' <<<"$deployments_json")" > 0 )); then
+            latest="$(jq '.[0]' <<<"$deployments_json")"
+            deployment_id="$(jq -r '.id' <<<"$latest")"
+            statuses='[]'
+            if fetched="$(api_get "/repos/${TARGET_REPO}/deployments/${deployment_id}/statuses?per_page=20")"; then
+              statuses="$fetched"
+            fi
+            latest_status="$(jq '.[0] // null' <<<"$statuses")"
+
+            latest_deployment_json="$(jq -n \
+              --argjson deployment "$latest" \
+              --argjson status "$latest_status" '{
+                id: $deployment.id,
+                ref: $deployment.ref,
+                sha: $deployment.sha,
+                environment: $deployment.environment,
+                created_at: $deployment.created_at,
+                latest_status: (
+                  if $status == null then null else {
+                    state: $status.state,
+                    environment_url: ($status.environment_url // null),
+                    created_at: $status.created_at
+                  } end
+                )
+              }')"
+
+            deployment_state="$(jq -r '.latest_status.state // "UNKNOWN"' <<<"$latest_deployment_json")"
+            case "$deployment_state" in
+              success) deployment_status="PASS" ;;
+              queued|pending|in_progress) deployment_status="PENDING" ;;
+              failure|error) deployment_status="FAIL" ;;
+              *) deployment_status="UNKNOWN" ;;
+            esac
+          fi
+
+          compact_active_pr="$(jq 'if . == null then null else {
+            number,
+            state,
+            draft,
+            title,
+            head_ref: .head.ref,
+            head_sha: .head.sha,
+            base_ref: .base.ref,
+            merged_at,
+            updated_at,
+            html_url
+          } end' <<<"$active_pr_json")"
+
+          compact_open_prs="$(jq '[.[0:20][] | {
+            number,
+            state,
+            draft,
+            title,
+            head_ref: .head.ref,
+            head_sha: .head.sha,
+            base_ref: .base.ref,
+            updated_at,
+            html_url
+          }]' <<<"$open_prs_json")"
+
+          compact_checks="$(jq '[.check_runs[0:50][] | {
+            id,
+            name,
+            status,
+            conclusion,
+            started_at,
+            completed_at,
+            html_url
+          }]' <<<"$check_runs_json")"
+
+          compact_runs="$(jq '[.workflow_runs[0:20][] | {
+            id,
+            name,
+            path,
+            event,
+            status,
+            conclusion,
+            head_sha,
+            run_number,
+            created_at,
+            updated_at,
+            html_url
+          }]' <<<"$workflow_runs_json")"
+
+          previous_project="$(jq --arg repo "$TARGET_REPO" '.projects[$repo] // null' "$STATE_FILE")"
+          previous_snapshot="$(jq '.snapshot // null' <<<"$previous_project")"
+          previous_sha="$(jq -r '.head.sha // ""' <<<"$previous_snapshot")"
+          continuity="$(jq '.continuity // {
+            based_on_sha: null,
+            bottleneck: null,
+            open_items: [],
+            completed_this_session: [],
+            next_action: null,
+            notes: []
+          }' <<<"$previous_project")"
+          continuity_sha="$(jq -r '.based_on_sha // ""' <<<"$continuity")"
+
+          drift_status="INITIAL"
+          if [[ "$previous_project" != "null" ]]; then
+            if [[ -z "$continuity_sha" ]]; then
+              drift_status="UNBOUND"
+            elif [[ "$continuity_sha" == "$head_sha" ]]; then
+              drift_status="FRESH"
+            else
+              drift_status="STALE"
+            fi
+          fi
+
+          signals='[]'
+          if [[ "$previous_project" == "null" ]]; then
+            signals="$(jq '. + ["INITIAL_SNAPSHOT"]' <<<"$signals")"
+          fi
+          if [[ -n "$previous_sha" && "$previous_sha" != "$head_sha" ]]; then
+            signals="$(jq '. + ["HEAD_CHANGED"]' <<<"$signals")"
+          fi
+          case "$drift_status" in
+            UNBOUND) signals="$(jq '. + ["CONTINUITY_UNBOUND"]' <<<"$signals")" ;;
+            STALE) signals="$(jq '. + ["CONTINUITY_STALE"]' <<<"$signals")" ;;
+          esac
+          case "$ci_status" in
+            FAIL) signals="$(jq '. + ["CI_FAIL"]' <<<"$signals")" ;;
+            PENDING) signals="$(jq '. + ["CI_PENDING"]' <<<"$signals")" ;;
+            UNKNOWN) signals="$(jq '. + ["CI_UNKNOWN"]' <<<"$signals")" ;;
+          esac
+          case "$deployment_status" in
+            FAIL) signals="$(jq '. + ["DEPLOY_FAIL"]' <<<"$signals")" ;;
+            PENDING) signals="$(jq '. + ["DEPLOY_PENDING"]' <<<"$signals")" ;;
+          esac
+
+          history="$(jq \
+            --arg current_sha "$head_sha" \
+            --argjson limit "$(jq '.contract.history_limit' "$STATE_FILE")" '
+            (.history // []) as $history
+            | (.snapshot // null) as $snapshot
+            | if $snapshot == null then $history
+              elif ($snapshot.head.sha // "") == "" then $history
+              elif ($snapshot.head.sha // "") == $current_sha then $history
+              else
+                ($history + [{
+                  observed_at: $snapshot.observed_at,
+                  head_sha: $snapshot.head.sha,
+                  ci_status: $snapshot.ci.status,
+                  deployment_status: $snapshot.deployment.status,
+                  active_pr: ($snapshot.active_pr.number // null)
+                }])[-$limit:]
+              end
+          ' <<<"$previous_project")"
+
+          snapshot="$(jq -n \
+            --arg observed_at "$observed_at" \
+            --arg target_repo "$TARGET_REPO" \
+            --arg default_branch "$default_branch" \
+            --arg visibility "$(jq -r '.visibility // "unknown"' <<<"$repo_json")" \
+            --argjson archived "$(jq '.archived // false' <<<"$repo_json")" \
+            --arg target_ref "$target_ref" \
+            --arg head_sha "$head_sha" \
+            --arg message "$(jq -r '.commit.message' <<<"$commit_json")" \
+            --arg committed_at "$(jq -r '.commit.committer.date // .commit.author.date' <<<"$commit_json")" \
+            --arg html_url "$(jq -r '.html_url' <<<"$commit_json")" \
+            --argjson working_branch "$working_branch_json" \
+            --argjson active_pr "$compact_active_pr" \
+            --argjson open_prs "$compact_open_prs" \
+            --arg ci_status "$ci_status" \
+            --argjson checks "$compact_checks" \
+            --argjson workflows "$compact_runs" \
+            --arg deployment_status "$deployment_status" \
+            --argjson latest_deployment "$latest_deployment_json" '{
+              observed_at: $observed_at,
+              repository: {
+                full_name: $target_repo,
+                default_branch: $default_branch,
+                visibility: $visibility,
+                archived: $archived
+              },
+              target_ref: $target_ref,
+              head: {
+                sha: $head_sha,
+                message: $message,
+                committed_at: $committed_at,
+                html_url: $html_url
+              },
+              working_branch: $working_branch,
+              active_pr: $active_pr,
+              open_prs: $open_prs,
+              ci: {
+                status: $ci_status,
+                evidence_sha: $head_sha,
+                checks: $checks,
+                workflow_runs: $workflows
+              },
+              deployment: {
+                status: $deployment_status,
+                evidence_sha: $head_sha,
+                latest: $latest_deployment
+              }
+            }')"
+
+          entry="$(jq -n \
+            --argjson snapshot "$snapshot" \
+            --arg drift_status "$drift_status" \
+            --argjson signals "$signals" \
+            --arg previous_sha "$previous_sha" \
+            --argjson continuity "$continuity" \
+            --argjson history "$history" '{
+              snapshot: $snapshot,
+              drift: {
+                status: $drift_status,
+                previous_head_sha: (if $previous_sha == "" then null else $previous_sha end),
+                signals: $signals
+              },
+              continuity: $continuity,
+              history: $history
+            }')"
+
+          tmp_state="$(mktemp)"
+          jq \
+            --arg repo "$TARGET_REPO" \
+            --arg generated_at "$observed_at" \
+            --argjson entry "$entry" '
+              .generated_at = $generated_at
+              | .projects[$repo] = $entry
+            ' "$STATE_FILE" > "$tmp_state"
+          mv "$tmp_state" "$STATE_FILE"
+
+          report="$REPORT_DIR/CONTINUITY_REPORTE.md"
+          {
+            echo "# ResurrecciónLLM — Continuity Report"
+            echo
+            echo "- Observed: \`$observed_at\`"
+            echo "- Repository: \`$TARGET_REPO\`"
+            echo "- Ref: \`$target_ref\`"
+            echo "- HEAD: \`$head_sha\`"
+            echo "- CI: **$ci_status**"
+            echo "- Deployment: **$deployment_status**"
+            echo "- Saved continuity: **$drift_status**"
+            echo
+            echo "## Drift signals"
+            if [[ "$(jq 'length' <<<"$signals")" == "0" ]]; then
+              echo "- None"
+            else
+              jq -r '.[] | "- `\(.)`"' <<<"$signals"
+            fi
+            echo
+            echo "## Active PR"
+            if [[ "$compact_active_pr" == "null" ]]; then
+              echo "- None verified"
+            else
+              jq -r '"- #\(.number) \(.title) — \(.state) — head `\(.head_sha)`"' <<<"$compact_active_pr"
+            fi
+            echo
+            echo "## Open PRs"
+            if [[ "$(jq 'length' <<<"$compact_open_prs")" == "0" ]]; then
+              echo "- None"
+            else
+              jq -r '.[] | "- #\(.number) \(.title) — head `\(.head_sha)`"' <<<"$compact_open_prs"
+            fi
+            echo
+            echo "## Checks for exact HEAD"
+            if [[ "$(jq 'length' <<<"$compact_checks")" == "0" ]]; then
+              echo "- No check-runs returned"
+            else
+              jq -r '.[] | "- \(.name): \(.status) / \(.conclusion // "null")"' <<<"$compact_checks"
+            fi
+            echo
+            echo "## Workflow runs for exact HEAD"
+            if [[ "$(jq 'length' <<<"$compact_runs")" == "0" ]]; then
+              echo "- No workflow runs returned"
+            else
+              jq -r '.[] | "- \(.name) #\(.run_number): \(.status) / \(.conclusion // "null")"' <<<"$compact_runs"
+            fi
+            echo
+            echo "## Agent continuity"
+            jq -r '
+              "- Based on SHA: `" + (.based_on_sha // "null") + "`",
+              "- Bottleneck: " + (.bottleneck // "null"),
+              "- Open items: " + ((.open_items | length) | tostring),
+              "- Next action: " + (if .next_action == null then "null" else (.next_action.action // "defined") end)
+            ' <<<"$continuity"
+            echo
+            echo "> Machine evidence is SHA-bound. A saved plan is guidance, not authority."
+          } > "$report"
+
+          cat "$report" >> "$GITHUB_STEP_SUMMARY"
+
+          safe_repo="${TARGET_REPO//\//-}"
+          {
+            echo "head_sha=$head_sha"
+            echo "short_sha=$short_sha"
+            echo "ci_status=$ci_status"
+            echo "deployment_status=$deployment_status"
+            echo "drift_status=$drift_status"
+            echo "artifact_name=resurrection-${safe_repo}-${short_sha}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Persist refreshed registry
+        if: ${{ steps.request.outputs.persist_state == 'true' }}
+        shell: bash
+        env:
+          TARGET_REPO: ${{ steps.request.outputs.target_repo }}
+          HEAD_SHA: ${{ steps.snapshot.outputs.head_sha }}
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add -- "$STATE_FILE"
+          if git diff --cached --quiet; then
+            echo "Registry unchanged."
+            exit 0
+          fi
+
+          git commit -m "chore(resurrección): snapshot ${TARGET_REPO}@${HEAD_SHA:0:12}"
+          git pull --rebase origin "$GITHUB_REF_NAME"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
+
+      - name: Upload resurrection evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ steps.snapshot.outputs.artifact_name }}
+          path: |
+            ResurrecciónLLM/CONTINUITY_STATE.json
+            ResurrecciónLLM/.generated/CONTINUITY_REPORTE.md
+          if-no-files-found: error
+          retention-days: 30

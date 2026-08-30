@@ -1,0 +1,51 @@
+{
+  "schema_version": "4.0.0",
+  "tool": {
+    "name": "ResurrecciónLLM",
+    "purpose": "Central, repository-independent continuity registry for reconstructing verifiable project state after context loss.",
+    "repository": "devMod3/devTool",
+    "state_model": "machine-snapshot + human/agent continuity",
+    "credentials_policy": "Never persist credentials, tokens, cookies, secrets, or authorization headers."
+  },
+  "generated_at": null,
+  "authority": {
+    "order": [
+      "github_current_state",
+      "repository_content_at_exact_sha",
+      "ci_evidence_for_exact_sha",
+      "continuity_machine_snapshot",
+      "continuity_agent_state",
+      "historical_hints"
+    ],
+    "rule": "Saved continuity guides recovery; current GitHub state and SHA-bound evidence determine reality."
+  },
+  "status_model": {
+    "allowed": [
+      "PASS",
+      "FAIL",
+      "PENDING",
+      "NOT_RUN",
+      "UNKNOWN"
+    ],
+    "drift": [
+      "FRESH",
+      "STALE",
+      "UNBOUND",
+      "INITIAL"
+    ]
+  },
+  "contract": {
+    "machine_owned": [
+      "projects.*.snapshot",
+      "projects.*.drift",
+      "projects.*.history"
+    ],
+    "agent_owned": [
+      "projects.*.continuity"
+    ],
+    "history_limit": 5,
+    "evidence_must_match_sha": true,
+    "closed_items_must_not_be_carried_forward": true
+  },
+  "projects": {}
+}
