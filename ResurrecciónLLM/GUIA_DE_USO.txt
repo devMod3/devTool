@@ -1,0 +1,332 @@
+RESURRECCIÓNLLM — GUÍA DE USO
+
+OBJETIVO
+
+ResurrecciónLLM sirve para recuperar el estado verificable de un proyecto cuando se pierde el contexto de un chat, cambia el agente o se retoma el trabajo días después.
+
+La regla principal es:
+
+GitHub actual > contenido del SHA exacto > CI/deployment de ese SHA > snapshot guardado > notas de continuidad > recuerdos del chat.
+
+Nunca se debe asumir que el snapshot sigue vigente sin volver a comprobar GitHub si el estado puede haber cambiado.
+
+DÓNDE VIVE
+
+Repositorio de herramientas:
+devMod3/devTool
+
+Carpeta:
+ResurrecciónLLM/
+
+Workflow ejecutable:
+.github/workflows/continuity-snapshot.yml
+
+Registro central:
+ResurrecciónLLM/CONTINUITY_STATE.json
+
+Mapa del entorno:
+ResurrecciónLLM/ENTORNO_VIBE_CODING.txt
+
+Esta herramienta NO debe copiarse dentro de los repositorios que observa.
+
+============================================================
+1. ANTES DE BORRAR UN CHAT
+============================================================
+
+1. Abre GitHub.
+2. Entra en:
+   devMod3/devTool
+3. Abre:
+   Actions
+4. Selecciona:
+   ResurrecciónLLM — Continuity Snapshot
+5. Pulsa:
+   Run workflow
+6. Completa los campos.
+
+Para Cuba — La hoja de ruta usa:
+
+target_repo:
+devMod3/cuba-la-hoja-de-ruta
+
+target_ref:
+dejar vacío para observar main
+
+working_branch:
+dejar vacío si no hay una rama de trabajo que quieras verificar
+
+active_pr:
+dejar vacío si no hay un PR específico que quieras verificar
+
+persist_state:
+true
+
+7. Ejecuta el workflow.
+8. Comprueba que el job termina correctamente.
+9. Confirma que devTool/main recibe un commit similar a:
+   chore(resurrección): snapshot owner/repo@SHA
+10. Sólo después considera el snapshot guardado como punto de recuperación.
+
+IMPORTANTE:
+El snapshot automático puede quedar marcado FRESH, STALE, UNBOUND o INITIAL.
+Ese estado describe la relación entre evidencia automática y continuidad del agente; no reemplaza la comprobación del GitHub actual.
+
+============================================================
+2. QUÉ GUARDA EL SNAPSHOT
+============================================================
+
+Para cada proyecto registra, entre otras cosas:
+
+- repositorio observado;
+- rama por defecto;
+- ref observado;
+- HEAD exacto;
+- mensaje y fecha del commit;
+- PRs abiertos;
+- rama de trabajo si se proporcionó como hint;
+- PR activo si se proporcionó como hint;
+- checks asociados al SHA;
+- workflow-runs asociados al SHA;
+- estado agregado de CI;
+- deployment asociado al mismo SHA;
+- URL de entorno cuando GitHub la reporta;
+- señales de drift respecto al snapshot anterior;
+- historial limitado de snapshots anteriores.
+
+El workflow no debe guardar:
+
+- tokens;
+- cookies;
+- secretos;
+- passwords;
+- cabeceras Authorization;
+- credenciales temporales del Admin.
+
+============================================================
+3. SIGNIFICADO DE LOS CAMPOS DE ENTRADA
+============================================================
+
+target_repo
+
+Obligatorio.
+Formato:
+owner/repo
+
+Ejemplo:
+devMod3/cuba-la-hoja-de-ruta
+
+Problema que resuelve:
+Identifica el repositorio cuya realidad se quiere reconstruir.
+
+
+target_ref
+
+Opcional.
+Puede ser rama, tag o SHA.
+
+Vacío:
+usa la rama por defecto del repositorio.
+
+Úsalo cuando quieras fijar explícitamente una rama o un commit.
+
+
+working_branch
+
+Opcional.
+Es un hint que ResurrecciónLLM verifica; no lo toma como verdad sin comprobar GitHub.
+
+Úsalo cuando la sesión anterior estaba trabajando en una rama concreta.
+
+
+active_pr
+
+Opcional.
+Número de Pull Request.
+
+Ejemplo:
+92
+
+Úsalo cuando quieres que la recuperación compruebe un PR concreto.
+
+
+persist_state
+
+true:
+actualiza CONTINUITY_STATE.json en devTool.
+
+false:
+genera la reconstrucción pero no persiste el registro central.
+
+Para preparar el borrado de un chat normalmente debe ser true.
+
+============================================================
+4. CÓMO RESUCITAR EL PROYECTO EN UN CHAT NUEVO
+============================================================
+
+1. Abre un chat nuevo.
+2. Asegúrate de tener disponible la conexión @GitHub.
+3. Usa este mensaje inicial:
+
+@GitHub
+Lee primero:
+- devMod3/devTool/ResurrecciónLLM/GUIA_DE_USO.txt
+- devMod3/devTool/ResurrecciónLLM/CONTINUITY_STATE.json
+- devMod3/devTool/ResurrecciónLLM/ENTORNO_VIBE_CODING.txt
+
+Proyecto objetivo:
+devMod3/cuba-la-hoja-de-ruta
+
+Revalida el estado ACTUAL de GitHub antes de actuar.
+No asumas que el snapshot sigue vigente si HEAD, PRs, CI o deployment cambiaron.
+Compara el GitHub actual con el snapshot y continúa desde el último estado verificable.
+
+4. El nuevo agente debe comenzar comprobando al menos:
+
+- HEAD actual de main;
+- PRs abiertos;
+- CI del HEAD actual;
+- deployment del HEAD actual;
+- archivos relevantes para la tarea que se vaya a continuar.
+
+5. Si el snapshot contradice GitHub actual, GitHub actual gana.
+
+============================================================
+5. CÓMO CONTINUAR UNA TAREA ESPECÍFICA
+============================================================
+
+Si recuerdas el área pero no los detalles, añade al mensaje de resurrección una frase como:
+
+Continúa con Admin / Acerca de.
+Audita primero el estado actual antes de modificar nada.
+
+O:
+
+Continúa con el PR #NN.
+Revalida base, head, mergeability y CI antes de escribir o mergear.
+
+Nunca es necesario copiar al nuevo chat todo el historial del chat viejo si ResurrecciónLLM y GitHub contienen suficiente evidencia.
+
+============================================================
+6. FLUJO RECOMENDADO DURANTE UNA SESIÓN
+============================================================
+
+Inicio de sesión:
+
+1. Leer snapshot.
+2. Revalidar GitHub actual.
+3. Identificar diferencia entre snapshot y realidad.
+4. Trabajar en una rama/PR cuando el cambio sea material.
+5. Ejecutar o esperar CI del SHA exacto.
+6. Merge sólo después de validar el head correcto.
+7. Confirmar CI/deployment de main.
+
+Final de sesión:
+
+1. Asegurar que el estado importante está en GitHub y no sólo en el chat.
+2. Ejecutar ResurrecciónLLM sobre el repositorio objetivo.
+3. Usar persist_state=true.
+4. Confirmar que el snapshot nuevo apunta al HEAD esperado.
+5. Confirmar que CI y deployment, si aplican, están ligados a ese mismo SHA.
+
+============================================================
+7. CÓMO INTERPRETAR DRIFT
+============================================================
+
+INITIAL
+
+Es el primer snapshot registrado para ese proyecto.
+
+
+FRESH
+
+La continuidad del agente está ligada al mismo SHA observado y no hay señales de desalineación relevantes.
+
+
+STALE
+
+La continuidad del agente está ligada a un SHA anterior o hay evidencia de que el estado guardado envejeció.
+
+
+UNBOUND
+
+Existe snapshot automático, pero la continuidad mantenida por el agente todavía no está ligada a un SHA concreto.
+
+UNBOUND no invalida el snapshot automático.
+Significa que el nuevo agente debe apoyarse principalmente en GitHub actual + evidencia del snapshot y reconstruir la intención de trabajo.
+
+============================================================
+8. REPOSITORIOS PRIVADOS
+============================================================
+
+Para repositorios públicos el workflow puede trabajar sin un secreto adicional.
+
+Para repositorios privados o acceso cross-repo autenticado puede configurarse en devTool:
+
+RESURRECTION_GITHUB_TOKEN
+
+Debe tener sólo los permisos de lectura necesarios sobre los repositorios observados.
+
+Nunca colocar ese token dentro de:
+
+- CONTINUITY_STATE.json;
+- README;
+- GUIA_DE_USO.txt;
+- artifacts;
+- comentarios de PR;
+- código del producto;
+- chats.
+
+============================================================
+9. CUANDO ALGO SALE MAL
+============================================================
+
+Si el workflow falla:
+
+- revisa que target_repo tenga formato owner/repo;
+- revisa que active_pr sea vacío o numérico;
+- revisa permisos del repositorio;
+- revisa acceso del token si el repositorio es privado;
+- revisa el log del workflow antes de repetir.
+
+Si CI aparece FAIL pero deployment PASS:
+
+No asumir que producción es correcta.
+Investigar si deployment y CI validaron exactamente el mismo SHA y las mismas fronteras.
+
+Si el snapshot tiene un SHA viejo:
+
+No editar manualmente la parte machine-owned para fingir actualidad.
+Ejecutar el workflow otra vez.
+
+Si un chat nuevo no entiende el proyecto:
+
+Darle la ruta de esta guía, la ruta de CONTINUITY_STATE.json y el repositorio objetivo; después exigir revalidación de GitHub actual.
+
+============================================================
+10. REGLAS DE AUTORIDAD Y SEGURIDAD
+============================================================
+
+- GitHub actual es la autoridad para estado mutable.
+- Un CI verde de un SHA diferente no autoriza otro SHA.
+- Un deployment verde de un SHA diferente no prueba el HEAD actual.
+- El snapshot es evidencia, no memoria infalible.
+- No copiar ResurrecciónLLM al repositorio observado.
+- No persistir credenciales.
+- No usar last-write-wins para autoría compartida.
+- Mantener concurrencia optimista y fail-closed.
+- No borrar el stale guard de Pages mientras exista riesgo de deployments históricos que puedan interferir.
+
+============================================================
+11. CHECKLIST MÍNIMO PARA PODER BORRAR EL CHAT
+============================================================
+
+[ ] El trabajo importante está committed o documentado en GitHub.
+[ ] El proyecto objetivo tiene un snapshot reciente.
+[ ] El snapshot apunta al HEAD esperado.
+[ ] CI está asociado al SHA correcto, si aplica.
+[ ] Deployment está asociado al SHA correcto, si aplica.
+[ ] La siguiente sesión puede identificar el proyecto sólo con owner/repo.
+[ ] Esta guía está disponible en devTool/main.
+[ ] Ningún secreto depende de la memoria del chat.
+
+Si estas condiciones se cumplen, el chat deja de ser una dependencia operativa del proyecto.
