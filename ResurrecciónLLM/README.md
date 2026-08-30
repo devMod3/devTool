@@ -6,6 +6,13 @@ Motor central de continuidad para reconstruir el estado verificable de cualquier
 
 - `CONTINUITY_STATE.json`: registro multi-proyecto. Separa evidencia automática (`snapshot`, `drift`, `history`) de continuidad mantenida por el agente (`continuity`).
 - `.github/workflows/continuity-snapshot.yml`: workflow ejecutable. GitHub Actions exige que los workflows activos vivan bajo `.github/workflows/`; por eso el launcher no puede residir dentro de esta carpeta.
+- `ENTORNO_VIBE_CODING.txt`: mapa operativo desde el chat y el conector GitHub hasta CI, build, deployment y página publicada.
+
+## Regla de separación
+
+ResurrecciónLLM pertenece a `devTool`, no al repositorio observado. Un proyecto objetivo no necesita ni debe copiar `CONTINUITY_STATE.json`, harnesses de continuidad o workflows de ResurrecciónLLM en su raíz para ser observado.
+
+La continuidad central evita que una herramienta transversal modifique la frontera arquitectónica del producto que está inspeccionando.
 
 ## Qué hace el snapshot
 
