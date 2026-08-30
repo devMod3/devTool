@@ -7,7 +7,7 @@
     "state_model": "machine-snapshot + human/agent continuity",
     "credentials_policy": "Never persist credentials, tokens, cookies, secrets, or authorization headers."
   },
-  "generated_at": null,
+  "generated_at": "2026-08-30T01:46:55Z",
   "authority": {
     "order": [
       "github_current_state",
@@ -47,5 +47,204 @@
     "evidence_must_match_sha": true,
     "closed_items_must_not_be_carried_forward": true
   },
-  "projects": {}
+  "projects": {
+    "devMod3/cuba-la-hoja-de-ruta": {
+      "snapshot": {
+        "observed_at": "2026-08-30T01:46:55Z",
+        "repository": {
+          "full_name": "devMod3/cuba-la-hoja-de-ruta",
+          "default_branch": "main",
+          "visibility": "public",
+          "archived": false
+        },
+        "target_ref": "main",
+        "head": {
+          "sha": "d879686754c9dcb514888f36d580a98d027aaa90",
+          "message": "Create CONTINUITY_STATE.json\n\nContinuidad DeppSeek",
+          "committed_at": "2026-08-30T01:16:42Z",
+          "html_url": "https://github.com/devMod3/cuba-la-hoja-de-ruta/commit/d879686754c9dcb514888f36d580a98d027aaa90"
+        },
+        "working_branch": null,
+        "active_pr": null,
+        "open_prs": [
+          {
+            "number": 86,
+            "state": "open",
+            "draft": false,
+            "title": "chore: make toolchain engine ranges portable",
+            "head_ref": "chore/dependabot-toolchain-compat",
+            "head_sha": "cd1623a389375867ac20493ac6e21dd8fdfc78c7",
+            "base_ref": "main",
+            "updated_at": "2026-08-29T10:41:42Z",
+            "html_url": "https://github.com/devMod3/cuba-la-hoja-de-ruta/pull/86"
+          }
+        ],
+        "ci": {
+          "status": "FAIL",
+          "evidence_sha": "d879686754c9dcb514888f36d580a98d027aaa90",
+          "checks": [
+            {
+              "id": 99188067395,
+              "name": "restore",
+              "status": "completed",
+              "conclusion": "skipped",
+              "started_at": "2026-08-30T01:23:41Z",
+              "completed_at": "2026-08-30T01:23:40Z",
+              "html_url": "https://github.com/devMod3/cuba-la-hoja-de-ruta/actions/runs/33285564547/job/99188067395"
+            },
+            {
+              "id": 99188051497,
+              "name": "assess",
+              "status": "completed",
+              "conclusion": "success",
+              "started_at": "2026-08-30T01:23:35Z",
+              "completed_at": "2026-08-30T01:23:40Z",
+              "html_url": "https://github.com/devMod3/cuba-la-hoja-de-ruta/actions/runs/33285564547/job/99188051497"
+            },
+            {
+              "id": 99188020638,
+              "name": "deploy",
+              "status": "completed",
+              "conclusion": "success",
+              "started_at": "2026-08-30T01:23:20Z",
+              "completed_at": "2026-08-30T01:23:29Z",
+              "html_url": "https://github.com/devMod3/cuba-la-hoja-de-ruta/actions/runs/33285301717/job/99188020638"
+            },
+            {
+              "id": 99187547315,
+              "name": "restore",
+              "status": "completed",
+              "conclusion": "success",
+              "started_at": "2026-08-30T01:18:45Z",
+              "completed_at": "2026-08-30T01:19:15Z",
+              "html_url": "https://github.com/devMod3/cuba-la-hoja-de-ruta/actions/runs/33285370763/job/99187547315"
+            },
+            {
+              "id": 99187534767,
+              "name": "assess",
+              "status": "completed",
+              "conclusion": "success",
+              "started_at": "2026-08-30T01:18:36Z",
+              "completed_at": "2026-08-30T01:18:40Z",
+              "html_url": "https://github.com/devMod3/cuba-la-hoja-de-ruta/actions/runs/33285370763/job/99187534767"
+            },
+            {
+              "id": 99187530583,
+              "name": "build",
+              "status": "completed",
+              "conclusion": "success",
+              "started_at": "2026-08-30T01:18:33Z",
+              "completed_at": "2026-08-30T01:23:14Z",
+              "html_url": "https://github.com/devMod3/cuba-la-hoja-de-ruta/actions/runs/33285301717/job/99187530583"
+            },
+            {
+              "id": 99187361236,
+              "name": "quality",
+              "status": "completed",
+              "conclusion": "skipped",
+              "started_at": "2026-08-30T01:16:51Z",
+              "completed_at": "2026-08-30T01:16:51Z",
+              "html_url": "https://github.com/devMod3/cuba-la-hoja-de-ruta/actions/runs/33285301703/job/99187361236"
+            },
+            {
+              "id": 99187350243,
+              "name": "repository-boundary",
+              "status": "completed",
+              "conclusion": "failure",
+              "started_at": "2026-08-30T01:16:47Z",
+              "completed_at": "2026-08-30T01:16:51Z",
+              "html_url": "https://github.com/devMod3/cuba-la-hoja-de-ruta/actions/runs/33285301703/job/99187350243"
+            }
+          ],
+          "workflow_runs": [
+            {
+              "id": 33285564547,
+              "name": "Restore Pages After Stale Deployment",
+              "path": ".github/workflows/pages-stale-guard.yml",
+              "event": "workflow_run",
+              "status": "completed",
+              "conclusion": "success",
+              "head_sha": "d879686754c9dcb514888f36d580a98d027aaa90",
+              "run_number": 23,
+              "created_at": "2026-08-30T01:23:31Z",
+              "updated_at": "2026-08-30T01:23:41Z",
+              "html_url": "https://github.com/devMod3/cuba-la-hoja-de-ruta/actions/runs/33285564547"
+            },
+            {
+              "id": 33285370763,
+              "name": "Restore Pages After Stale Deployment",
+              "path": ".github/workflows/pages-stale-guard.yml",
+              "event": "workflow_run",
+              "status": "completed",
+              "conclusion": "success",
+              "head_sha": "d879686754c9dcb514888f36d580a98d027aaa90",
+              "run_number": 22,
+              "created_at": "2026-08-30T01:18:32Z",
+              "updated_at": "2026-08-30T01:19:16Z",
+              "html_url": "https://github.com/devMod3/cuba-la-hoja-de-ruta/actions/runs/33285370763"
+            },
+            {
+              "id": 33285301703,
+              "name": "Validate Next.js Pages Application",
+              "path": ".github/workflows/ci.yml",
+              "event": "push",
+              "status": "completed",
+              "conclusion": "failure",
+              "head_sha": "d879686754c9dcb514888f36d580a98d027aaa90",
+              "run_number": 77,
+              "created_at": "2026-08-30T01:16:44Z",
+              "updated_at": "2026-08-30T01:16:52Z",
+              "html_url": "https://github.com/devMod3/cuba-la-hoja-de-ruta/actions/runs/33285301703"
+            },
+            {
+              "id": 33285301717,
+              "name": "Deploy GitHub Pages",
+              "path": ".github/workflows/deploy-pages.yml",
+              "event": "push",
+              "status": "completed",
+              "conclusion": "success",
+              "head_sha": "d879686754c9dcb514888f36d580a98d027aaa90",
+              "run_number": 91,
+              "created_at": "2026-08-30T01:16:44Z",
+              "updated_at": "2026-08-30T01:23:30Z",
+              "html_url": "https://github.com/devMod3/cuba-la-hoja-de-ruta/actions/runs/33285301717"
+            }
+          ]
+        },
+        "deployment": {
+          "status": "PASS",
+          "evidence_sha": "d879686754c9dcb514888f36d580a98d027aaa90",
+          "latest": {
+            "id": 6162001919,
+            "ref": "main",
+            "sha": "d879686754c9dcb514888f36d580a98d027aaa90",
+            "environment": "github-pages",
+            "created_at": "2026-08-30T01:23:15Z",
+            "latest_status": {
+              "state": "success",
+              "environment_url": "https://devmod3.github.io/cuba-la-hoja-de-ruta/",
+              "created_at": "2026-08-30T01:23:29Z"
+            }
+          }
+        }
+      },
+      "drift": {
+        "status": "INITIAL",
+        "previous_head_sha": null,
+        "signals": [
+          "INITIAL_SNAPSHOT",
+          "CI_FAIL"
+        ]
+      },
+      "continuity": {
+        "based_on_sha": null,
+        "bottleneck": null,
+        "open_items": [],
+        "completed_this_session": [],
+        "next_action": null,
+        "notes": []
+      },
+      "history": []
+    }
+  }
 }
