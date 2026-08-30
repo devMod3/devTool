@@ -1,0 +1,860 @@
+ENTORNO DE DESARROLLO / WORKSPACE / STACK TECNOLÓGICO
+VIBE CODING — MAPA DE RESPONSABILIDADES
+Estado de referencia: 2026-08-29/30
+Ámbito: desde la conversación con el agente hasta una página publicada y verificable.
+
+OBJETIVO
+
+Este documento fija el entorno operativo de vibe coding como una cadena de responsabilidades. No define el producto por una herramienta concreta: identifica qué componente toma decisiones, cuál modifica el repositorio, cuál ejecuta código, cuál valida, cuál construye y cuál publica.
+
+La fuente de verdad del producto es GitHub y la evidencia ligada a un SHA. La conversación sirve para dirigir el trabajo; no reemplaza Git, CI ni los artefactos verificables.
+
+FLUJO END-TO-END
+
+Usuario
+  -> ChatGPT
+  -> conector @GitHub
+  -> repositorio y rama de trabajo
+  -> commit
+  -> Pull Request
+  -> GitHub Actions / CI
+  -> merge a main
+  -> workflow de producción
+  -> build estático
+  -> artefacto GitHub Pages
+  -> deployment
+  -> página web
+  -> ResurrecciónLLM captura el nuevo estado verificable
+
+1. USUARIO / INTENCIÓN
+
+Responsabilidad:
+Define objetivo, restricciones, prioridades y autorización de cambios.
+
+Dónde actúa:
+En la conversación.
+
+Qué problema resuelve:
+Aporta intención humana. Ningún workflow puede decidir por sí solo qué producto se quiere construir.
+
+Regla:
+La intención puede cambiar; el estado técnico no se supone. Antes de actuar sobre un proyecto existente se revalida GitHub.
+
+2. CHATGPT / AGENTE DE ORQUESTACIÓN
+
+Responsabilidad:
+Traducir intención a diagnóstico, plan, cambios de código, revisión, validación y explicación.
+
+Dónde actúa:
+En la conversación y a través de herramientas autorizadas.
+
+Configuración observada en esta sesión:
+GPT-5.6 Sol.
+
+Qué problema resuelve:
+Coordina trabajo multidisciplinario sin convertir la memoria del chat en fuente de verdad.
+
+Regla:
+El modelo no es una dependencia de build del producto. Puede cambiar en el futuro. La continuidad durable debe quedar en GitHub, no únicamente en la conversación.
+
+3. CONECTOR @GITHUB
+
+Responsabilidad:
+Canal autenticado entre el agente y GitHub.
+
+Dónde actúa:
+Repositorios, archivos, blobs, árboles Git, commits, ramas, Pull Requests, reviews y GitHub Actions.
+
+Qué problema resuelve:
+Permite que el agente lea y modifique estado real sin copiar credenciales al código o a la conversación.
+
+Regla de seguridad:
+Tokens, cookies, secretos y cabeceras Authorization no se persisten en CONTINUITY_STATE.json, documentación ni artifacts.
+
+Regla de evidencia:
+Una afirmación sobre CI, PR, branch, commit o deployment debe resolverse contra GitHub actual cuando sea material.
+
+4. DEVTOOL
+
+Repositorio:
+devMod3/devTool
+
+Responsabilidad:
+Contenedor de herramientas reutilizables que no pertenecen al producto Cuba.
+
+Dónde actúa:
+Fuera del runtime de la página.
+
+Qué problema resuelve:
+Evita contaminar el repositorio del producto con utilidades de desarrollo, inspección o continuidad.
+
+Componentes actuales relevantes:
+ResurrecciónLLM
+inspector
+
+Regla:
+Una herramienta transversal no se introduce en la raíz de cuba-la-hoja-de-ruta salvo que sea una dependencia real de entrega del producto.
+
+5. RESURRECCIÓNLLM
+
+Ubicación:
+devMod3/devTool/ResurrecciónLLM
+
+Workflow ejecutable:
+devMod3/devTool/.github/workflows/continuity-snapshot.yml
+
+Responsabilidad:
+Reconstruir el estado verificable de cualquier repositorio después de pérdida de contexto.
+
+Qué observa:
+HEAD exacto.
+Rama por defecto.
+Ref objetivo.
+PRs abiertos.
+Hint de working branch si se proporciona.
+Hint de PR si se proporciona.
+Check-runs ligados al SHA.
+Workflow-runs ligados al SHA.
+Deployment ligado al SHA.
+Cambio respecto al snapshot anterior.
+
+Qué persiste:
+CONTINUITY_STATE.json en devTool.
+
+Modelo de ownership:
+La máquina administra snapshot, drift e history.
+El agente administra continuity.
+
+Estados de drift:
+INITIAL: primera observación.
+FRESH: continuidad del agente ligada al HEAD actual.
+STALE: el HEAD cambió desde el plan guardado.
+UNBOUND: existe continuidad, pero no está ligada a un SHA.
+
+Qué problema resuelve:
+Evita continuar desde PRs, ramas, errores o planes que fueron ciertos en una sesión anterior pero ya no representan GitHub.
+
+Regla:
+CONTINUITY_STATE.json central vive en devTool. No debe duplicarse en la raíz de los repositorios observados.
+
+6. REPOSITORIO DEL PRODUCTO
+
+Repositorio:
+devMod3/cuba-la-hoja-de-ruta
+
+Responsabilidad:
+Fuente versionada del producto Cuba — La hoja de ruta.
+
+Rama de autoridad:
+main
+
+Modelo de cambio:
+Rama corta -> commit -> Pull Request -> CI -> merge.
+
+Qué problema resuelve:
+Git convierte cambios propuestos en estados identificables por SHA y permite auditar exactamente qué código fue probado y desplegado.
+
+Regla:
+CI verde de un SHA no autoriza otro SHA.
+
+7. FRONTERA DEL REPOSITORIO CUBA
+
+Raíz durable esperada:
+.github
+README.md
+next
+
+Responsabilidad:
+Separar infraestructura de GitHub, documentación de entrada y workspace mantenido.
+
+Qué problema resuelve:
+Evita que herramientas temporales, payloads de migración, copias de continuidad, directorios legacy o código fuera del workspace reaparezcan silenciosamente.
+
+Política:
+La misma aserción de repository boundary debe proteger CI, producción y cualquier restauración de Pages.
+
+8. WORKSPACE PNPM
+
+Raíz técnica:
+cuba-la-hoja-de-ruta/next
+
+Gestor:
+pnpm 11.22.0 en CI.
+
+Contrato del workspace:
+apps/*
+packages/*
+
+Responsabilidad:
+Organizar aplicación y paquetes internos como un monorepo pequeño con dependencias explícitas.
+
+Qué problema resuelve:
+Permite modularidad sin publicar paquetes externos y hace visibles las dependencias internas.
+
+Configuración de seguridad/reproducibilidad:
+engineStrict: true.
+strictPeerDependencies: true.
+savePrefix vacío.
+minimumReleaseAge: 1440 minutos.
+blockExoticSubdeps: true.
+strictDepBuilds: true.
+Build script permitido explícitamente: sharp@0.34.5.
+
+9. TOOLCHAIN REPRODUCIBLE
+
+Runner CI y producción:
+Ubuntu 24.04.
+
+Node ejecutado por CI:
+24.19.0 exacto.
+
+pnpm ejecutado por CI:
+11.22.0 exacto.
+
+packageManager:
+pnpm@11.22.0.
+
+Restricción manifest actual:
+Node 24.19.x.
+pnpm 11.22.x.
+
+Lockfile:
+pnpm-lock.yaml, instalado con --frozen-lockfile.
+
+TypeScript:
+6.0.3.
+
+ESLint:
+10.9.0.
+
+typescript-eslint:
+8.67.0.
+
+Prettier resuelto por lockfile:
+3.9.6.
+
+@next/eslint-plugin-next:
+16.2.12.
+
+Qué problema resuelve:
+Hace que “funciona en mi sesión” no sea el criterio de éxito. CI reconstruye el workspace con versiones conocidas y lockfile inmutable.
+
+Regla:
+Los rangos de compatibilidad del manifest y los runtimes exactos de CI son conceptos distintos. Cambiar compatibilidad no cambia automáticamente los pins de CI.
+
+10. TYPESCRIPT COMO FUENTE MANTENIDA
+
+Target:
+ES2025.
+
+Module:
+ESNext.
+
+Resolución:
+Bundler.
+
+Modo:
+strict.
+
+Restricciones adicionales:
+noUncheckedIndexedAccess.
+exactOptionalPropertyTypes.
+noImplicitOverride.
+noPropertyAccessFromIndexSignature.
+useUnknownInCatchVariables.
+noFallthroughCasesInSwitch.
+noUncheckedSideEffectImports.
+verbatimModuleSyntax.
+isolatedModules.
+erasableSyntaxOnly.
+skipLibCheck: false.
+
+Responsabilidad:
+Ser el lenguaje mantenido del workspace de producto.
+
+Qué problema resuelve:
+Reduce estados implícitos y errores de contrato antes de ejecutar el navegador.
+
+Política:
+No se mantiene JS/JSX/MJS/CJS bajo next.
+
+11. ESLINT
+
+Responsabilidad:
+Análisis estático semántico y de estilo de código.
+
+Configuración:
+TypeScript strict type-checked.
+React Hooks.
+Next.js recommended.
+Next.js Core Web Vitals.
+Sin warnings permitidos.
+
+Reglas destacadas:
+consistent type imports.
+no import type side effects.
+switch exhaustiveness.
+eqeqeq.
+no debugger.
+no eval.
+no implied eval.
+
+Qué problema resuelve:
+Detecta usos inseguros o inconsistentes que TypeScript por sí solo no cubre.
+
+12. PRETTIER
+
+Responsabilidad:
+Formato canónico.
+
+Dónde actúa:
+Todo el workspace next, excluyendo salidas generadas mediante configuración de herramientas.
+
+Qué problema resuelve:
+Elimina discusiones y drift de formato; el CI usa prettier --check y no corrige silenciosamente.
+
+13. NEXT.JS / REACT — CAPA DE ENTREGA
+
+Aplicación:
+@zenblog/web
+
+Next.js:
+16.2.12.
+
+React:
+19.2.0.
+
+React DOM:
+19.2.0.
+
+Next App Router:
+apps/web/app.
+
+Configuración:
+output: export.
+trailingSlash: true.
+reactStrictMode: true.
+poweredByHeader: false.
+images unoptimized para hosting estático.
+basePath derivado de ZENBLOG_BASE_PATH.
+
+Responsabilidad:
+Convertir dominio, contenido y configuración en una experiencia web estática.
+
+Qué problema resuelve:
+Entrega actual al navegador.
+
+Regla arquitectónica:
+Next.js pertenece a apps/web. Los paquetes internos no dependen de Next.
+
+14. COMPOSITION ROOT / WEB
+
+Ubicación:
+apps/web.
+
+Responsabilidad:
+Conectar puertos y adaptadores concretos.
+
+Qué problema resuelve:
+Mantiene decisiones de infraestructura fuera del dominio y permite reemplazar adaptadores sin reescribir las reglas centrales.
+
+También posee:
+Resolución de URL/site address.
+Presentación.
+Páginas.
+Componentes.
+Integración del Admin.
+Adaptadores locales de delivery.
+
+15. @zenblog/domain
+
+Responsabilidad:
+Tipos, invariantes y parsing del dominio.
+
+Dependencias runtime externas:
+Ninguna.
+
+Qué problema resuelve:
+Define el significado del producto sin depender de Next, GitHub ni librerías de infraestructura.
+
+Regla:
+Las dependencias apuntan hacia el dominio, nunca desde el dominio hacia delivery o proveedores.
+
+16. @zenblog/content-catalog
+
+Responsabilidad:
+Catálogo editorial durable.
+
+Persistencia:
+JSON UTF-8.
+
+Contrato:
+JSON Schema.
+
+Qué problema resuelve:
+Separa el contenido de la implementación de la página y del proveedor de hosting.
+
+Regla:
+Los artículos tienen IDs propios; no almacenan GitHub Pages como identidad.
+
+17. @zenblog/site-config
+
+Responsabilidad:
+Perfil del sitio, vocabulario y registro de metadata.
+
+Persistencia:
+JSON UTF-8 más JSON Schema.
+
+Qué problema resuelve:
+Convierte configuración editorial en datos portables y validables.
+
+18. @zenblog/content-renderer
+
+Responsabilidad:
+Sanitizar HTML editorial antes de presentarlo.
+
+Dependencia relevante fijada por lockfile:
+sanitize-html 2.17.7.
+
+Qué problema resuelve:
+Permite conservar HTML estándar durable sin aceptar markup arbitrario inseguro.
+
+19. @zenblog/search-core
+
+Responsabilidad:
+Búsqueda determinista y portable.
+
+Qué problema resuelve:
+La capacidad de búsqueda no depende del framework de UI ni de un servicio SaaS concreto.
+
+20. @zenblog/authoring-core
+
+Responsabilidad:
+Puertos de autoría, sesión, versionado y serialización canónica.
+
+Contratos importantes:
+AuthoringConnector.
+VersionedJsonRepository.
+
+Qué problema resuelve:
+La UI de autoría trabaja con semántica del producto y no con SHA/REST de un proveedor.
+
+21. @zenblog/authoring-github
+
+Responsabilidad:
+Adapter actual para GitHub como backend de autoría.
+
+Depende de:
+authoring-core.
+
+Qué problema resuelve:
+Traduce operaciones de autoría a GitHub sin contaminar los casos de uso.
+
+Regla:
+GitHub es un adapter reemplazable.
+
+22. @zenblog/zrp-adapter
+
+Responsabilidad:
+Aislar la integración ZRP.
+
+Qué problema resuelve:
+Evita que una capacidad específica se disperse por dominio, contenido o UI.
+
+23. CONTRATOS DURABLES
+
+Formatos:
+JSON UTF-8.
+JSON Schema 2020-12.
+HTML estándar sanitizado.
+
+Identidad de schema:
+URNs estables.
+
+Versionado:
+schemaVersion explícito.
+
+Cambios incompatibles:
+Nueva versión de schema más migración explícita.
+
+Qué problema resuelve:
+Un consumidor futuro puede interpretar los datos aunque TypeScript, Next.js, GitHub Pages o el equipo actual desaparezcan.
+
+24. VITEST / TESTS UNITARIOS
+
+Vitest:
+4.1.11.
+
+Coverage provider:
+V8.
+
+Cobertura global mínima:
+Statements 90%.
+Branches 70%.
+Functions 90%.
+Lines 95%.
+
+El dominio exige:
+Statements 100%.
+Functions 100%.
+Lines 100%.
+Branches 75%.
+
+Otros paquetes poseen umbrales específicos superiores al baseline global.
+
+Responsabilidad:
+Probar lógica portable, adaptadores y contratos sin navegador.
+
+Qué problema resuelve:
+Detecta regresiones de comportamiento y evita reducir cobertura para obtener verde.
+
+25. PLAYWRIGHT / E2E
+
+Playwright:
+1.62.1.
+
+Proyectos:
+Chromium.
+Firefox.
+WebKit.
+Mobile WebKit basado en iPhone 15 Pro.
+
+Retries:
+0.
+
+Ejecución:
+fullyParallel.
+
+Trace:
+retain-on-failure.
+
+Servidor local de prueba:
+pnpm --filter @zenblog/web dev
+http://127.0.0.1:3000
+
+Responsabilidad:
+Validar el producto desde el navegador y no sólo funciones aisladas.
+
+Qué problema resuelve:
+Prueba navegación, Admin, artículos, exploración, accesibilidad, gestos móviles, plataforma Pages y ZRP en motores distintos.
+
+26. AXE / ACCESIBILIDAD
+
+@axe-core/playwright:
+4.13.0.
+
+Responsabilidad:
+Automatizar detección de violaciones de accesibilidad dentro del E2E.
+
+Qué problema resuelve:
+Convierte parte de WCAG/accesibilidad en gate repetible.
+
+27. SUPPLY CHAIN
+
+Archivo de baseline:
+next/security/dependency-baseline.json.
+
+Responsabilidad:
+Fijar contrato de gestor, engine, hash del lockfile, número de entradas, antigüedad mínima y scripts de build permitidos.
+
+SBOM:
+CycloneDX 1.7 generado por CI.
+
+Dependabot:
+npm sobre /next, ejecución semanal, máximo 5 PR abiertos.
+
+Qué problema resuelve:
+Evita cambios silenciosos en el grafo de dependencias y conserva evidencia de qué software compone el build.
+
+28. PERFORMANCE BUDGET
+
+Presupuesto actual:
+JavaScript gzip total máximo: 250000 bytes.
+JavaScript gzip individual máximo: 150000 bytes.
+CSS gzip total máximo: 50000 bytes.
+CSS gzip individual máximo: 40000 bytes.
+
+Responsabilidad:
+Impedir que el coste de entrega crezca silenciosamente.
+
+Regla:
+El presupuesto no se aumenta sólo para hacer pasar CI.
+
+29. PNPM CHECK — GATE CANÓNICO DE APLICACIÓN
+
+Orden operativo:
+format:check.
+lint.
+source:typescript.
+project:standards.
+architecture:check.
+portability:check.
+security:check.
+typecheck.
+typecheck:quality.
+test:coverage.
+build.
+static:articles:check.
+seo:ownership:check.
+performance:budget.
+
+Responsabilidad:
+Convertir las decisiones arquitectónicas y de calidad en una condición binaria reproducible.
+
+Qué problema resuelve:
+Evita que “parece funcionar” sustituya a evidencia técnica.
+
+30. REPOSITORY BOUNDARY — GATE DE REPOSITORIO
+
+Responsabilidad:
+Validar la forma del repositorio antes de los gates de aplicación.
+
+Comprueba:
+Raíz exacta.
+Archivos estructurales obligatorios.
+Ausencia de directorios legacy.
+Ausencia de payloads temporales.
+Ausencia de workflows temporales/legacy.
+Ausencia de JavaScript mantenido bajo next.
+
+Qué problema resuelve:
+pnpm check sólo puede validar next; este gate protege el contenedor completo.
+
+Regla:
+CI, deployment y restauración de Pages deben ejecutar la misma política.
+
+31. GITHUB ACTIONS — CI
+
+Workflow:
+.github/workflows/ci.yml
+
+Eventos:
+Pull Request hacia main.
+Push a main.
+
+Runner:
+ubuntu-24.04.
+
+Fase 1:
+repository-boundary.
+
+Fase 2:
+quality.
+
+Quality instala:
+Node 24.19.0.
+pnpm 11.22.0.
+Dependencias con frozen lockfile.
+
+Después ejecuta:
+pnpm check.
+Upload de coverage.
+Upload de SBOM.
+Instalación de Chromium/Firefox/WebKit.
+Playwright completo.
+Ensayo de export estático con basePath no productivo.
+
+Qué problema resuelve:
+PR significa código revisable más evidencia reproducible.
+
+32. BUILD ESTÁTICO
+
+Comando de aplicación:
+pnpm --filter @zenblog/web build.
+
+Salida:
+next/apps/web/out.
+
+Artefactos mínimos esperados:
+index.html.
+_next/.
+robots.txt.
+sitemap.xml.
+
+Responsabilidad:
+Transformar el workspace en archivos estáticos servibles.
+
+Qué problema resuelve:
+GitHub Pages no ejecuta el servidor Next; recibe el resultado estático.
+
+33. BASE PATH
+
+Variable:
+ZENBLOG_BASE_PATH.
+
+En ensayo de portabilidad:
+Se usa un path no productivo.
+
+En producción:
+Se usa el base_path que entrega actions/configure-pages.
+
+Responsabilidad:
+Separar rutas del producto de la URL concreta del host.
+
+Qué problema resuelve:
+Evita hardcodear /cuba-la-hoja-de-ruta en dominio o contenido.
+
+34. WORKFLOW DE PRODUCCIÓN
+
+Workflow:
+.github/workflows/deploy-pages.yml
+
+Trigger:
+Push a main.
+workflow_dispatch.
+
+Permisos:
+contents read.
+pages write.
+id-token write.
+
+Secuencia:
+Checkout del SHA de producción.
+Repository boundary.
+Node exacto.
+pnpm exacto.
+Frozen install.
+pnpm check.
+Playwright completo.
+Configurar Pages.
+Build con basePath real.
+Verificar export.
+Upload de Pages artifact.
+Deploy del artifact exacto.
+
+Responsabilidad:
+Publicar sólo un artefacto derivado del SHA que superó los gates dentro del propio workflow.
+
+Qué problema resuelve:
+No depender de un “CI verde anterior” para autorizar producción.
+
+35. GITHUB PAGES
+
+Responsabilidad:
+Hosting estático actual.
+
+Qué recibe:
+El artifact generado desde next/apps/web/out.
+
+Qué problema resuelve:
+Servir la web pública sin servidor de aplicación.
+
+Regla arquitectónica:
+GitHub Pages es un adapter de delivery vigente, no la identidad del producto.
+
+36. STALE DEPLOYMENT GUARD
+
+Workflow:
+.github/workflows/pages-stale-guard.yml
+
+Responsabilidad:
+Detectar si un deployment exitoso terminó después de que main ya avanzó y, si es necesario, restaurar el main actual.
+
+Qué problema resuelve:
+Protege contra carreras y deployments antiguos que podrían sobrescribir una publicación más nueva.
+
+Regla:
+La restauración también debe respetar repository boundary y validar el export antes de desplegar.
+
+37. PRODUCCIÓN
+
+Resultado final:
+Una página web estática accesible desde GitHub Pages.
+
+Criterio técnico de “funcionando”:
+El SHA de main está identificado.
+El workflow de producción de ese SHA termina success.
+El deployment de ese SHA termina success.
+El artifact contiene la salida estática esperada.
+Cuando se requiera cierre completo, se realiza smoke público de la URL desplegada.
+
+38. CICLO DE CONTINUIDAD RECOMENDADO
+
+Inicio de sesión:
+Ejecutar ResurrecciónLLM contra el repositorio objetivo cuando el contexto previo pueda estar desactualizado.
+
+Durante la sesión:
+Trabajar en branch y PR.
+No actualizar manualmente el snapshot machine-owned.
+
+Después de merge/deploy importante:
+Ejecutar ResurrecciónLLM nuevamente.
+
+Fin de sesión:
+Dejar continuity ligada al SHA real y un next_action observable.
+
+Nueva sesión:
+Leer el registro central.
+Revalidar GitHub.
+Si drift es STALE o el HEAD difiere, reconstruir antes de actuar.
+
+39. QUÉ ESTÁ FIJADO Y QUÉ ES REEMPLAZABLE
+
+Fijado para reproducibilidad del pipeline actual:
+Ubuntu 24.04.
+Node 24.19.0 en CI.
+pnpm 11.22.0 en CI.
+Lockfile frozen.
+TypeScript 6.0.3.
+Next.js 16.2.12.
+React/React DOM 19.2.0.
+ESLint 10.9.0.
+typescript-eslint 8.67.0.
+Prettier 3.9.6 resuelto.
+Vitest 4.1.11.
+Playwright 1.62.1.
+Axe Playwright 4.13.0.
+Retries E2E 0.
+Budgets y thresholds versionados.
+
+Reemplazable por diseño:
+Modelo LLM.
+IDE o terminal local.
+Next.js como renderer.
+GitHub Pages como host.
+GitHub como adapter de authoring.
+ZRP como integración aislada.
+
+No reemplazable sin decisión explícita de producto/arquitectura:
+Semántica del dominio.
+Contenido durable.
+Contratos persistidos.
+Reglas de versionado/migración.
+Evidencia ligada a SHA.
+Gates que protegen invariantes.
+
+40. WORKSPACE LOCAL
+
+Un IDE específico no forma parte del contrato observado.
+
+Se puede usar editor, terminal o agente distinto siempre que respete:
+Node/pnpm compatibles.
+Frozen lockfile.
+Los mismos comandos del repositorio.
+Los mismos gates.
+
+Camino local mínimo:
+cd next
+pnpm install --frozen-lockfile
+pnpm dev
+
+Antes de proponer merge:
+pnpm check
+pnpm test:e2e
+
+Qué problema resuelve:
+El entorno local es una comodidad de edición; CI sigue siendo el árbitro reproducible.
+
+41. REGLA DE ORO DEL VIBE CODING FIJADO
+
+El chat decide intención.
+El agente propone y ejecuta cambios autorizados.
+El conector escribe GitHub.
+Git conserva el estado.
+El PR delimita el cambio.
+CI prueba el SHA.
+El workflow de producción reconstruye y valida el SHA.
+Pages sirve el artifact.
+ResurrecciónLLM recuerda evidencia y detecta drift.
+
+Ninguna capa debe fingir el trabajo de la siguiente.
