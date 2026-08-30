@@ -6,6 +6,7 @@ Motor central de continuidad para reconstruir el estado verificable de cualquier
 
 - `CONTINUITY_STATE.json`: registro multi-proyecto. Separa evidencia automática (`snapshot`, `drift`, `history`) de continuidad mantenida por el agente (`continuity`).
 - `.github/workflows/continuity-snapshot.yml`: workflow ejecutable. GitHub Actions exige que los workflows activos vivan bajo `.github/workflows/`; por eso el launcher no puede residir dentro de esta carpeta.
+- `GUIA_DE_USO.txt`: procedimiento autosuficiente para preparar el borrado de un chat, ejecutar snapshots y resucitar un proyecto en una conversación nueva.
 - `ENTORNO_VIBE_CODING.txt`: mapa operativo desde el chat y el conector GitHub hasta CI, build, deployment y página publicada.
 
 ## Regla de separación
